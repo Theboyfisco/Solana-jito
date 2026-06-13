@@ -1,0 +1,55 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Bundle {
+  id                String          @id @default(cuid())
+  bundleId          String?         @unique   // Jito bundle UUID
+  signature         String?         @unique   // Transaction signature
+  status            String          @default("SUBMITTED") // SUBMITTED, PROCESSED, CONFIRMED, FINALIZED, FAILED, ABANDONED
+  failureReason     String?
+  failureCategory   String?
+  tipLamports       BigInt
+  blockhashUsed     String
+  blockhashSlot     Int
+  submissionSlot    Int
+  processedSlot     Int?
+  confirmedSlot     Int?
+  finalizedSlot     Int?
+  submittedAt       DateTime        @default(now())
+  processedAt       DateTime?
+  confirmedAt       DateTime?
+  finalizedAt       DateTime?
+  retryCount        Int             @default(0)
+  parentBundleId    String?         // for retry chains
+  agentDecisions    AgentDecision[]
+}
+
+model AgentDecision {
+  id            String   @id @default(cuid())
+  bundleId      String
+  bundle        Bundle   @relation(fields: [bundleId], references: [id])
+  reasoning     String
+  confidence    Float
+  action        String
+  parameters    Json
+  outcome       String?
+  createdAt     DateTime @default(now())
+}
+
+model TipSnapshot {
+  id          String   @id @default(cuid())
+  timestamp   DateTime @default(now())
+  slot        Int
+  p25         BigInt
+  p50         BigInt
+  p75         BigInt
+  p95         BigInt
+  p99         BigInt
+  landingRate Float
+}

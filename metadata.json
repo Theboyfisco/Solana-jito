@@ -1,0 +1,8 @@
+{
+  "name": "Solana Smart Transaction Infrastructure Stack",
+  "description": "High-fidelity Solana smart transaction infrastructure featuring Jito bundles, Yellowstone Geyser streams, leader schedule awareness, and AI-driven autonomous failure classification and retries.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
