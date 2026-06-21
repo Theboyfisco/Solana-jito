@@ -50,7 +50,7 @@ export default function AiDecisions({ decisions }: AiDecisionsProps) {
 
         <div className="flex items-center gap-3">
           <div className="text-[10px] font-mono px-3 py-1.5 rounded-lg border border-purple-500/20 bg-purple-500/10 text-purple-300 font-bold uppercase tracking-wider">
-            Engine: gemini-3.5-flash
+            Engine: claude-3.5-sonnet
           </div>
           <div className="text-[10px] font-mono px-3 py-1.5 rounded-lg border border-[#D4FF00]/20 bg-[#D4FF00]/10 text-[#D4FF00] font-bold uppercase tracking-widest flex items-center gap-1.5">
             <span className="h-1.5 w-1.5 rounded-full bg-[#D4FF00] animate-ping"></span>
@@ -103,7 +103,7 @@ export default function AiDecisions({ decisions }: AiDecisionsProps) {
               </div>
 
               <p className="text-[11px] text-[#888888] leading-relaxed mb-4 font-sans">
-                Our Gemini-guided block orchestrator actively monitors the payload signatures and builds a continuous state lineage graph.
+                Our Claude-guided block orchestrator actively monitors the payload signatures and builds a continuous state lineage graph.
               </p>
             </div>
 

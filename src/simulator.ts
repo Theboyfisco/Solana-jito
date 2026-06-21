@@ -1,4 +1,3 @@
-import { GoogleGenAI, Type } from "@google/genai";
 import { Connection, Keypair, SystemProgram, Transaction, PublicKey } from "@solana/web3.js";
 import { 
   Bundle, BundleStatus, FailureCategory, AgentAction, AgentDecision, 
@@ -32,30 +31,15 @@ export const JITO_TIP_ACCOUNTS = [
   "DttWaMuVvTiduZRnguLF7jNxTgiMBZ1hyAumKUiL2KRL3",
   "3AVoygJbyZ76DGJdQ6asgFuigQmgTG7Y87ngo7ZRWVKm",
   "6m9F9H68p9ZLa9sDoAnW48mE9X877wKNo6B6v9NoBD1c",
-  "DfX5A2dwvSt8mGcqi77709gQBjXm991E4C NoQnoBD3b"
+  "DfXSA2dwvSt8mGcqi77709gQBjXm991E4CNoQnoBD3b"
 ];
 
 // Rolling tips stats (last 500 records)
 let recentObservations: number[] = Array.from({ length: 100 }, () => Math.floor(1000000 + Math.random() * 8000000));
 
-// Gemini API Lazy Initialization
-let aiClient: GoogleGenAI | null = null;
-export function getAiClient(): GoogleGenAI | null {
-  const key = process.env.GEMINI_API_KEY;
-  if (!key || key === "MY_GEMINI_API_KEY" || key.trim() === "") {
-    return null; // Graceful simulated mode fallback
-  }
-  if (!aiClient) {
-    aiClient = new GoogleGenAI({
-      apiKey: key,
-      httpOptions: {
-        headers: {
-          'User-Agent': 'aistudio-build',
-        }
-      }
-    });
-  }
-  return aiClient;
+// Local AI Agent Lazy Initialization stub
+export function getAiClient(): any {
+  return null;
 }
 
 // Global functions for services
@@ -314,96 +298,23 @@ async function runAiAgentDecision(bundle: Bundle, failure: { category: FailureCa
     decisions.unshift(dec);
     return dec;
   }
-
-  // Active Gemini SDK usage
-  try {
-    const prompt = `You are a professional Solana transaction operations AI. You analyze Jito bundle auction drops and network failures, returning accurate autonomous decisions.
-    
-    Current System Context:
-    ${JSON.stringify(context, null, 2)}
-
-    Task:
-    Decide the optimal path to recover this failed transaction. Your decision will be carried out by our automated orchestrator.
-
-    Output FORMAT: You must return raw JSON string representing the AgentDecision action parameters. Do NOT wrap in markdown \`\`\`json blocks.
-    
-    Expected JSON format:
-    {
-      "reasoning": "Substantive chain-of-thought analysis explaining the failure and why this recovery action is selected, referencing network metrics (minimum 150 characters)",
-      "confidence": 0.0 to 1.0 (float),
-      "action": "RETRY" | "WAIT" | "ABANDON" | "INCREASE_TIP" | "REFRESH_BLOCKHASH" | "COMPOSITE",
-      "parameters": {
-        "tipMultiplier": 1.0 to 3.0,
-        "waitSlots": number (optional),
-        "targetPercentile": 50 | 75 | 95 | 99,
-        "sequence": ["WAIT", "REFRESH_BLOCKHASH", "INCREASE_TIP", "RETRY"]
-      }
-    }
-    `;
-
-    const response = await client.models.generateContent({
-      model: "gemini-3.5-flash",
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          required: ["reasoning", "confidence", "action", "parameters"],
-          properties: {
-            reasoning: { type: Type.STRING },
-            confidence: { type: Type.NUMBER },
-            action: { type: Type.STRING },
-            parameters: {
-              type: Type.OBJECT,
-              properties: {
-                tipMultiplier: { type: Type.NUMBER },
-                waitSlots: { type: Type.INTEGER },
-                targetPercentile: { type: Type.INTEGER },
-                sequence: {
-                  type: Type.ARRAY,
-                  items: { type: Type.STRING }
-                }
-              }
-            }
-          }
-        }
-      }
-    });
-
-    const body = response.text?.trim() || "";
-    const parsed = JSON.parse(body);
-
-    const dec: AgentDecision = {
-      id: "dec_" + Math.random().toString(36).substring(2, 9),
-      bundleId: bundle.id,
-      reasoning: parsed.reasoning || "Failed to extract Gemini reasoning context.",
-      confidence: parsed.confidence || 0.85,
-      action: parsed.action as AgentAction,
-      parameters: parsed.parameters || {},
-      createdAt: new Date().toISOString()
-    };
-    decisions.unshift(dec);
-    return dec;
-
-  } catch (err: any) {
-    console.error("Gemini AI API Call failed, falling back safely:", err);
-    // Safe fall-back
-    const dec: AgentDecision = {
-      id: mockDecisionId,
-      bundleId: bundle.id,
-      reasoning: `Operational fallback: Gemini API encounter error (either rate limit or key permissions). Autonomously classified failure '${failure.category}' and executed standard routing. Retrying after refreshing slot cursors and adding 1.25x tip padding to offset active tps latency.`,
-      confidence: 0.70,
-      action: 'COMPOSITE',
-      parameters: {
-        tipMultiplier: 1.25,
-        targetPercentile: 75,
-        sequence: ["REFRESH_BLOCKHASH", "INCREASE_TIP", "RETRY"]
-      },
-      createdAt: new Date().toISOString()
-    };
-    decisions.unshift(dec);
-    return dec;
-  }
+  
+  // Safe mock fallback decision
+  const dec: AgentDecision = {
+    id: mockDecisionId,
+    bundleId: bundle.id,
+    reasoning: `Operational fallback: Autonomously classified failure '${failure.category}' and executed standard routing. Retrying after refreshing slot cursors and adding 1.25x tip padding to offset active tps latency.`,
+    confidence: 0.70,
+    action: 'COMPOSITE',
+    parameters: {
+      tipMultiplier: 1.25,
+      targetPercentile: 75,
+      sequence: ["REFRESH_BLOCKHASH", "INCREASE_TIP", "RETRY"]
+    },
+    createdAt: new Date().toISOString()
+  };
+  decisions.unshift(dec);
+  return dec;
 }
 
 // 9. Autonomous Retry execute orchestrator

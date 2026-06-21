@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Play, Cpu, Brain, History, Award, CheckCircle2, 
   HelpCircle, Sparkles, Sliders, AlertTriangle, ShieldCheck,
@@ -14,6 +14,7 @@ import BountyQuestions from './components/BountyQuestions';
 import ProtobufSandbox from './components/ProtobufSandbox';
 import AiTuningStudio from './components/AiTuningStudio';
 import ThreeDBlockVisualizer from './components/ThreeDBlockVisualizer';
+import LiveEventLog from './components/LiveEventLog';
 
 const rpcNodes = [
   { name: "Triton Mainnet (Tokyo)", latency: 38, location: "Tokyo, JP" },
@@ -49,6 +50,7 @@ export default function App() {
   
   const [bundles, setBundles] = useState<Bundle[]>([]);
   const [decisions, setDecisions] = useState<AgentDecision[]>([]);
+  const [snapshots, setSnapshots] = useState<TipSnapshot[]>([]);
   const [activeFault, setActiveFault] = useState<string | null>(null);
   const [isLiveConnection, setIsLiveConnection] = useState<boolean>(false);
   const [loading, setLoading] = useState(true);
@@ -57,6 +59,18 @@ export default function App() {
   const [description, setDescription] = useState<string>("Jupiter Aggregator Swap (Raydium Vault Router)");
   const [activeRpc, setActiveRpc] = useState(rpcNodes[0]);
   const [rpcDropdownOpen, setRpcDropdownOpen] = useState(false);
+  const rpcDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close RPC dropdown on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (rpcDropdownRef.current && !rpcDropdownRef.current.contains(e.target as Node)) {
+        setRpcDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
 
   // Poll simulator state from the Express backend
   const fetchState = async () => {
@@ -79,10 +93,15 @@ export default function App() {
       const decisionsData = await decisionsRes.json();
       setDecisions(decisionsData);
 
-      // Check if real Gemini key is active
+      // 4. Fetch tip history snapshots
+      const snapshotsRes = await fetch("/api/snapshots");
+      const snapshotsData = await snapshotsRes.json();
+      setSnapshots(snapshotsData);
+
+      // Check if real Claude key is active
       const healthRes = await fetch("/api/health");
       const healthData = await healthRes.json();
-      setIsLiveConnection(healthData.aiMode === "LIVE_GEMINI_API");
+      setIsLiveConnection(healthData.aiMode === "LIVE_CLAUDE_API");
       
       setLoading(false);
     } catch (err) {
@@ -155,7 +174,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0a0b] text-white flex flex-col font-sans" id="applet-root">
+    <div className="min-h-screen bg-[#0a0a0b] text-white flex flex-col font-sans overflow-x-hidden" id="applet-root">
       
       {/* Top Header Workspace Status bar */}
       <header className="bg-[#121214] border-b border-[#222224] sticky top-0 z-40 relative overflow-hidden" id="global-header">
@@ -195,7 +214,7 @@ export default function App() {
             </div>
 
             {/* Hot-swappable Inflow RPC Node Selector */}
-            <div className="relative font-mono text-[11px]" id="rpc-node-selector-container">
+            <div className="relative font-mono text-[11px]" id="rpc-node-selector-container" ref={rpcDropdownRef}>
               <button
                 type="button"
                 onClick={() => setRpcDropdownOpen(!rpcDropdownOpen)}
@@ -246,7 +265,7 @@ export default function App() {
             <div className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#1e1e21] border border-[#222224] shadow-md">
               <ShieldCheck className={`h-4 w-4 ${isLiveConnection ? 'text-purple-400' : 'text-amber-400'}`} />
               <span className="text-[9px] font-mono font-extrabold text-zinc-300 leading-none tracking-wider font-mono">
-                AI COCKPIT: {isLiveConnection ? 'LIVE GEMINI' : 'HEURISTIC AGENT'}
+                AI COCKPIT: {isLiveConnection ? 'LIVE CLAUDE' : 'HEURISTIC AGENT'}
               </span>
             </div>
 
@@ -347,6 +366,15 @@ export default function App() {
                       </div>
                       <BundleFeed bundles={bundles.slice(0, 5)} />
                     </div>
+
+                    {/* Live Event Pipeline Log */}
+                    <LiveEventLog
+                      currentSlot={currentSlot}
+                      bundles={bundles}
+                      decisions={decisions}
+                      percentiles={percentiles}
+                      congestionScore={health.congestionScore}
+                    />
                   </div>
 
                   {/* Right matrix column */}
@@ -362,6 +390,7 @@ export default function App() {
                       congestionScore={health.congestionScore}
                       selectedPercentile={dispatchPercentile}
                       onSelectPercentile={setDispatchPercentile}
+                      snapshots={snapshots}
                     />
                   </div>
                 </div>

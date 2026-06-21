@@ -3,14 +3,27 @@ import { currentSlot } from '../leader/leader-service';
 
 export let recentObservations: number[] = Array.from({ length: 100 }, () => Math.floor(1000000 + Math.random() * 8000000));
 
+const previousBalances: Record<string, number> = {};
+
 export function initTipService() {
   streamBus.on('tipAccountUpdate', (update: any) => {
-    // Observe tip delta in lamports (mocked delta)
-    const newObs = Math.max(100000, Math.floor(update.account.lamports * 0.1 + (Math.random() - 0.5) * 500000));
-    recentObservations.push(newObs);
-    if (recentObservations.length > 500) recentObservations.shift();
-    
-    // Periodically take snapshots (every 30 slots theoretically, managed in engine loop for now)
+    try {
+      const pubkeyBuffer = update.account.pubkey;
+      // Depending on the Yellowstone grpc version, pubkey is a buffer or base58.
+      const pubkey = pubkeyBuffer.toString('hex'); 
+      const currentLamports = parseInt(update.account.lamports, 10);
+      
+      if (previousBalances[pubkey] !== undefined) {
+        const delta = currentLamports - previousBalances[pubkey];
+        if (delta > 0 && delta < 1000000000) { // sanity check
+          recentObservations.push(delta);
+          if (recentObservations.length > 500) recentObservations.shift();
+        }
+      }
+      previousBalances[pubkey] = currentLamports;
+    } catch (e) {
+      // ignore parse errors
+    }
   });
 }
 
@@ -34,4 +47,3 @@ export function addTipObservation(value: number) {
   recentObservations.push(value);
   if (recentObservations.length > 500) recentObservations.shift();
 }
-

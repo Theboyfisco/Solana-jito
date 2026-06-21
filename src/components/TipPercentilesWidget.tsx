@@ -1,6 +1,18 @@
 import React from 'react';
-import { ArrowUpRight, ArrowDownRight, RefreshCw, Layers, Check } from 'lucide-react';
-import { JITO_TIP_ACCOUNTS } from '../simulator';
+import { ArrowUpRight, ArrowDownRight, RefreshCw, Layers, Check, TrendingUp } from 'lucide-react';
+import { TipSnapshot } from '../types';
+
+// Known Jito tip accounts on Solana mainnet (static list — same 8 accounts as stream.ts)
+const JITO_TIP_ACCOUNTS = [
+  "96gYZGLnJYLFGGAzBqcNkiNpqB8bBTmMxBDKwhCTZFMG",
+  "HFqU5x63VTqvQss8hp11i4wVV8bD44PvwucfZ2bU7gRe",
+  "Cw8CFyM9FkoMi7K7Crf6HNQqf4uEMzpKw6QNghXLvLkY",
+  "ADaUMid9yfUytqMBgopwjb2DTLSokTSzL1sMXoi62cCo",
+  "DttWaMuVvTiduZRnguLF7jNxTgiMBZ1hyAumKUiL2KRL3",
+  "3AVoygJbyZ76DGJdQ6asgFuigQmgTG7Y87ngo7ZRWVKm",
+  "6m9F9H68p9ZLa9sDoAnW48mE9X877wKNo6B6v9NoBD1c",
+  "DfXSA2dwvSt8mGcqi77709gQBjXm991E4CNoQnoBD3b"
+];
 
 interface TipPercentilesWidgetProps {
   percentiles: {
@@ -13,22 +25,62 @@ interface TipPercentilesWidgetProps {
   congestionScore: number;
   selectedPercentile?: number;
   onSelectPercentile?: (percentile: number) => void;
+  snapshots?: TipSnapshot[];
+}
+
+/** Renders a mini SVG sparkline for an array of values */
+function Sparkline({ values, color }: { values: number[]; color: string }) {
+  if (values.length < 2) return null;
+  const W = 100; const H = 24;
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const range = max - min || 1;
+  const pts = values.map((v, i) => {
+    const x = (i / (values.length - 1)) * W;
+    const y = H - ((v - min) / range) * H;
+    return `${x},${y}`;
+  });
+  return (
+    <svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="w-full">
+      <polyline
+        points={pts.join(' ')}
+        fill="none"
+        stroke={color}
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+        strokeLinecap="round"
+        opacity="0.85"
+      />
+      {/* Glow dot on last value */}
+      {values.length > 0 && (
+        <circle
+          cx={(values.length - 1) / (values.length - 1) * W}
+          cy={H - ((values[values.length - 1] - min) / range) * H}
+          r="2"
+          fill={color}
+          opacity="1"
+        />
+      )}
+    </svg>
+  );
 }
 
 export default function TipPercentilesWidget({ 
   percentiles, 
   congestionScore,
   selectedPercentile,
-  onSelectPercentile
+  onSelectPercentile,
+  snapshots = []
 }: TipPercentilesWidgetProps) {
   const formatSol = (lamports: number) => {
     return (lamports / 1000000000).toFixed(4) + " SOL";
   };
 
   const isRising = congestionScore > 0.6;
+  const p75Values = (snapshots || []).slice(-15).map(s => s.p75);
 
   return (
-    <div className="bg-[#121214] border border-[#222224] rounded-[24px] p-6 shadow-2xl flex flex-col justify-between h-full hover:border-[#D4FF00]/40 transition-all duration-300" id="tips-percentiles-widget">
+    <div className="bg-[#121214] border border-[#222224] rounded-[24px] p-6 shadow-2xl flex flex-col justify-between h-auto hover:border-[#D4FF00]/40 transition-all duration-300" id="tips-percentiles-widget">
       <div>
         <div className="flex justify-between items-center mb-5">
           <div className="flex items-center gap-2">
@@ -47,6 +99,21 @@ export default function TipPercentilesWidget({
           Real-time rolling Geyser transaction validator fees.
           <span className="block mt-1 text-[#D4FF00] font-mono font-bold text-[10px] uppercase">💡 Click any tier to load into the dispatcher</span>
         </p>
+
+        {p75Values.length >= 2 && (
+          <div className="mb-4 bg-[#161618] border border-[#222224] rounded-xl p-3">
+            <div className="flex justify-between items-center mb-1.5 font-mono text-[9px] text-[#888888] uppercase font-bold tracking-wider">
+              <span className="flex items-center gap-1">
+                <TrendingUp className="h-3 w-3 text-[#D4FF00]" />
+                Live Tip Trend (p75)
+              </span>
+              <span className="text-white font-extrabold font-mono">{formatSol(p75Values[p75Values.length - 1])}</span>
+            </div>
+            <div className="h-6 flex items-end">
+              <Sparkline values={p75Values} color="#D4FF00" />
+            </div>
+          </div>
+        )}
 
         <div className="space-y-3">
           {[

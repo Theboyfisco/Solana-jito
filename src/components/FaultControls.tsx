@@ -132,7 +132,7 @@ export default function FaultControls({
               </p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {/* Fault A Button */}
               <button
                 type="button"
@@ -163,6 +163,23 @@ export default function FaultControls({
                   <h4 className="text-xs font-bold text-white">Underfloor Bid</h4>
                   <p className="text-[10px] text-[#888888] mt-0.5 leading-normal">
                     Submits tiny tip floor failing Jito validation auction rates.
+                  </p>
+                </div>
+              </button>
+
+              {/* Fault C Button */}
+              <button
+                type="button"
+                onClick={() => onInjectFault('LEADER_SKIP')}
+                className="flex items-start gap-2.5 bg-[#1e1e21] border border-[#222224] hover:bg-[#222224] hover:border-blue-500/40 p-3 rounded-xl text-left transition-all group cursor-pointer"
+              >
+                <div className="p-1.5 rounded-lg bg-blue-500/10 text-blue-400 shrink-0">
+                  <AlertCircle className="h-4 w-4 text-blue-400 group-hover:scale-110 transition-transform" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-white">Leader Skip</h4>
+                  <p className="text-[10px] text-[#888888] mt-0.5 leading-normal">
+                    Simulates a Jito validator offline event. AI auto-retargets.
                   </p>
                 </div>
               </button>

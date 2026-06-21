@@ -5,12 +5,19 @@ import dotenv from "dotenv";
 import { 
   currentSlot, bundles, decisions, snapshots, health, 
   getTipPercentiles, getLeaderContext, submitBundle, 
-  setNextFault, setCongestionScore, startEngine,
-  getAiClient
+  setNextFault, setCongestionScore, startEngine
 } from "./src/engine";
 
 // Load environment variables
 dotenv.config();
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('⚠️ Unhandled Promise Rejection:', reason);
+});
+
+process.on('uncaughtException', (error) => {
+  console.error('⚠️ Uncaught Exception:', error);
+});
 
 async function startServer() {
   const app = express();
@@ -24,10 +31,12 @@ async function startServer() {
 
   // API Routes
   app.get("/api/health", (req, res) => {
+    const anthropicKey = process.env.ANTHROPIC_API_KEY;
+    const isLiveAi = !!(anthropicKey && anthropicKey !== "MY_ANTHROPIC_API_KEY" && anthropicKey.trim() !== "");
     res.json({ 
       status: "ok", 
       time: new Date().toISOString(),
-      aiMode: getAiClient() ? "LIVE_GEMINI_API" : "HEURISTIC_REASONING_SIMULATION"
+      aiMode: isLiveAi ? "LIVE_CLAUDE_API" : "HEURISTIC_REASONING_SIMULATION"
     });
   });
 

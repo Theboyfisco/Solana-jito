@@ -35,7 +35,7 @@ Our pipeline abstracts Solana transaction delivery into nine decoupled subsystem
 5. **Leader-Aware Submission Gate**: Caches transactions until the leader countdown represents $\le 2$ slots to the nearest Jito validator.
 6. **Lifecycle Tracker Engine**: Monitors dual geyser subscription transactions to transition state statuses: `SUBMITTED` ➔ `PROCESSED` ➔ `CONFIRMED` ➔ `FINALIZED`.
 7. **Failure Classification Engine**: If a bundle fails, this engine evaluates the footprint to distinguish `EXPIRED_BLOCKHASH`, `INSUFFICIENT_TIP`, `LEADER_SKIP`, or write-lock `ACCOUNT_CONTENTION` with rigorous confidence scores.
-8. **AI Autonomous Agent**: Ingests failure context, block states, and tip percentile guidelines, and issues verbatim JSON-formatted self-healing decisions using **Gemini-3.5-Flash** server-side.
+8. **AI Autonomous Agent**: Ingests failure context, block states, and tip percentile guidelines, and issues verbatim JSON-formatted self-healing decisions using **Claude 3.5 Sonnet** via Anthropic server-side.
 9. **Autonomous Retry Orchestrator**: Executes the agent's recovery directives (applying compound multipliers, resetting blockhash slots, injecting delay buffers) and records parent-child lineage.
 
 ---
@@ -66,12 +66,12 @@ Since Jito bundles are strictly slot-bound and valid only for the block a specif
 
 ### 1. Requirements
 * **Node.js**: 20.x or above
-* **API Keys**: Set `GEMINI_API_KEY` in the secrets panel to utilize live AI Agent reasoning. If no key is set, the system falls back to a high-quality local heuristic model with realistic mock chains of thought.
+* **API Keys**: Set `ANTHROPIC_API_KEY` in the secrets panel to utilize live AI Agent reasoning. If no key is set, the system falls back to a high-quality local heuristic model with realistic mock chains of thought.
 
 ### 2. Configuration (`.env`)
 Fill in details in `.env` based on `.env.example`:
 ```env
-GEMINI_API_KEY="YOUR_GEMINI_KEY"
+ANTHROPIC_API_KEY="YOUR_ANTHROPIC_KEY"
 PORT=3000
 ```
 

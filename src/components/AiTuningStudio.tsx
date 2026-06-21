@@ -39,7 +39,7 @@ export default function AiTuningStudio({ onRegisterSystemRule, isRegistered }: A
           </div>
           <div>
             <h3 className="font-extrabold text-white text-sm uppercase tracking-widest font-mono">Neural Model Configuration Console</h3>
-            <p className="text-[11px] text-[#888888] font-sans">Tune Gemini model system prompts, temperature thresholds, &amp; cost limits on-the-fly</p>
+            <p className="text-[11px] text-[#888888] font-sans">Tune Claude model system prompts, temperature thresholds, &amp; cost limits on-the-fly</p>
           </div>
         </div>
 
