@@ -180,38 +180,40 @@ function seedInitialData() {
     });
   }
 
-  // Pre-populate 2 failed ones + retry flow for stunning logs out of the box!
+  // Pre-populate 3 failed scenarios (all 3 fault types) + retry flows
   const failedSlot1 = simSlot + 320;
+  
+  // --- Scenario 1: INSUFFICIENT_TIP ---
   const bundleFail1: any = {
     id: "bnd_fail_init1",
     bundleId: "jit-fail1-401f-009a",
     signature: "5vFailSignature1JitoXyz",
     status: 'FAILED',
-    tipLamports: 1000, // deliberately low tip to simulate the low tip scenario
+    tipLamports: 1000, // deliberately low tip
     blockhashUsed: "5G7C68qK8pBvG3pLd8ZNoXp9tU8M7e6vF5W4X3y2Z99",
     blockhashSlot: failedSlot1 - 10,
     submissionSlot: failedSlot1,
-    submittedAt: new Date(Date.now() - 3 * 60000).toISOString(),
+    submittedAt: new Date(Date.now() - 8 * 60000).toISOString(),
     retryCount: 0,
     payloadDesc: "Jupiter Aggregator Swap (Raydium Vault Router)",
     failureCategory: "INSUFFICIENT_TIP",
-    failureReason: "Tip of 1000 lamports is below current network p50 floor of 3450000 lamports. Outbid in Jito bundle auction."
+    failureReason: "Tip of 1,000 lamports is below the current network p50 floor of 3,450,000 lamports. Outbid in Jito bundle MEV auction."
   };
   bundles.push(bundleFail1);
 
   const dec1: any = {
     id: "dec_init1",
     bundleId: "bnd_fail_init1",
-    reasoning: "Analysis of target bundle 'bnd_fail_init1' reveals submission failure due to INSUFFICIENT_TIP. The bid of 1,000 lamports sits orders of magnitude below the active p50 floor. To secure execution priority with current congestion at 35%, we must adjust fee models to align with competitive bids. Recommendation: Rebuild transaction targeting the p95 percentile with a 1.5x buffer, refresh the blockhash target, and resubmit immediately.",
-    confidence: 0.98,
+    reasoning: "Bundle bnd_fail_init1 was rejected by the Jito block engine due to an INSUFFICIENT_TIP bid. The submitted tip of 1,000 lamports falls 99% short of the current p75 network floor (7,500,000 lamports). Active network congestion and high-frequency auction competition at the block engine level require bids at or above p95 (25,000,000 lamports) to guarantee inclusion. Recommended action: rebuild the bundle targeting the p95 percentile with a 2.5x multiplier, refresh the blockhash to ensure freshness, and resubmit to the block engine. The next Jito-enabled leader is 12 slots away, providing a viable resubmission window.",
+    confidence: 0.96,
     action: "INCREASE_TIP",
     parameters: {
       tipMultiplier: 2.5,
       targetPercentile: 95,
-      sequence: ["REFRESH_BLOCKHASH", "INCREASE_TIP", "RETRY"]
+      sequence: ["INCREASE_TIP", "RETRY"]
     },
     outcome: "Successfully launched retry bundle ID: bnd_retry_init1 at slot " + (failedSlot1 + 5),
-    createdAt: new Date(Date.now() - 3 * 60000 + 1500).toISOString()
+    createdAt: new Date(Date.now() - 8 * 60000 + 1500).toISOString()
   };
   decisions.push(dec1);
 
@@ -220,22 +222,112 @@ function seedInitialData() {
     bundleId: "jit-retry1-401f-009a",
     signature: "5vRetrySuccessSig1JitoAbc",
     status: 'FINALIZED',
-    tipLamports: 18500000,
+    tipLamports: 28000000,
     blockhashUsed: "5G7C68qK8pBvG3pLd8ZNoXp9tU8M7e6vF5W4X3y2Z77",
     blockhashSlot: failedSlot1 + 4,
     submissionSlot: failedSlot1 + 5,
     processedSlot: failedSlot1 + 6,
     confirmedSlot: failedSlot1 + 8,
     finalizedSlot: failedSlot1 + 39,
-    submittedAt: new Date(Date.now() - 3 * 60000 + 2000).toISOString(),
-    processedAt: new Date(Date.now() - 3 * 60000 + 2400).toISOString(),
-    confirmedAt: new Date(Date.now() - 3 * 60000 + 3200).toISOString(),
-    finalizedAt: new Date(Date.now() - 3 * 60000 + 15600).toISOString(),
+    submittedAt: new Date(Date.now() - 8 * 60000 + 2000).toISOString(),
+    processedAt: new Date(Date.now() - 8 * 60000 + 2400).toISOString(),
+    confirmedAt: new Date(Date.now() - 8 * 60000 + 3200).toISOString(),
+    finalizedAt: new Date(Date.now() - 8 * 60000 + 15600).toISOString(),
     retryCount: 1,
     parentBundleId: "bnd_fail_init1",
     payloadDesc: "Retry #1: Jupiter Aggregator Swap (Raydium Vault Router)"
   };
   bundles.push(bundleRetry1);
+
+  // --- Scenario 2: LEADER_SKIP ---
+  const failedSlot2 = simSlot + 180;
+  const bundleFail2: any = {
+    id: "bnd_fail_init2",
+    bundleId: "jit-fail2-501f-ab12",
+    signature: "5vFailSignature2JitoLeader",
+    status: 'FAILED',
+    tipLamports: 8200000,
+    blockhashUsed: "8A7C68qK8pBvG3pLd8ZNoXp9tU8M7e6vF5W4X3y2Z55",
+    blockhashSlot: failedSlot2 - 5,
+    submissionSlot: failedSlot2,
+    submittedAt: new Date(Date.now() - 5 * 60000).toISOString(),
+    retryCount: 0,
+    payloadDesc: "Drift Protocol Perps Position Open (SOL-PERP 10x)",
+    failureCategory: "LEADER_SKIP",
+    failureReason: "Jito leader skipped the designated slot. Bundle execution window missed at slot " + failedSlot2 + "."
+  };
+  bundles.push(bundleFail2);
+
+  const dec2: any = {
+    id: "dec_init2",
+    bundleId: "bnd_fail_init2",
+    reasoning: "Bundle bnd_fail_init2 encountered a LEADER_SKIP event — the designated Jito validator failed to produce its assigned slot block. This is an infrastructure-level failure unrelated to tip sizing; the Jito block engine received the bundle but could not pack it. Recovery: wait 8 slots for the next Jito-enabled leader window, refresh the blockhash as a precaution, and resubmit. Tip escalation is NOT recommended since the failure was leader-side, not auction-side. Existing tip of 8,200,000 lamports remains competitive at the p75 level.",
+    confidence: 0.88,
+    action: "COMPOSITE",
+    parameters: {
+      tipMultiplier: 1.1,
+      targetPercentile: 75,
+      sequence: ["WAIT_FOR_JITO_LEADER", "REFRESH_BLOCKHASH", "RETRY"]
+    },
+    outcome: "Retry queued for next Jito leader window. Bundle bnd_retry_init2 resubmitted successfully.",
+    createdAt: new Date(Date.now() - 5 * 60000 + 1200).toISOString()
+  };
+  decisions.push(dec2);
+
+  const bundleRetry2: any = {
+    id: "bnd_retry_init2",
+    bundleId: "jit-retry2-501f-ab12",
+    signature: "5vRetrySuccessSig2JitoLeader",
+    status: 'CONFIRMED',
+    tipLamports: 9020000,
+    blockhashUsed: "9B8D68qK8pBvG3pLd8ZNoXp9tU8M7e6vF5W4X3y2Z44",
+    blockhashSlot: failedSlot2 + 6,
+    submissionSlot: failedSlot2 + 8,
+    processedSlot: failedSlot2 + 9,
+    confirmedSlot: failedSlot2 + 12,
+    submittedAt: new Date(Date.now() - 5 * 60000 + 3200).toISOString(),
+    processedAt: new Date(Date.now() - 5 * 60000 + 3600).toISOString(),
+    confirmedAt: new Date(Date.now() - 5 * 60000 + 4800).toISOString(),
+    retryCount: 1,
+    parentBundleId: "bnd_fail_init2",
+    payloadDesc: "Retry #1: Drift Protocol Perps Position Open (SOL-PERP 10x)"
+  };
+  bundles.push(bundleRetry2);
+
+  // --- Scenario 3: EXPIRED_BLOCKHASH ---
+  const failedSlot3 = simSlot + 60;
+  const bundleFail3: any = {
+    id: "bnd_fail_init3",
+    bundleId: "jit-fail3-601f-cd34",
+    signature: "5vFailSignature3JitoExpiry",
+    status: 'FAILED',
+    tipLamports: 6500000,
+    blockhashUsed: "7C9D68qK8pBvG3pLd8ZNoXp9tU8M7e6vF5W4X3y2Z22",
+    blockhashSlot: failedSlot3 - 155, // expired
+    submissionSlot: failedSlot3,
+    submittedAt: new Date(Date.now() - 2 * 60000).toISOString(),
+    retryCount: 0,
+    payloadDesc: "Meteora Dynamic DLMM Add Liquidity (SOL/USDC)",
+    failureCategory: "EXPIRED_BLOCKHASH",
+    failureReason: "Blockhash slot " + (failedSlot3 - 155) + " is 155 slots old — exceeded the 150-slot validity window. Rejected at validator ingestion layer."
+  };
+  bundles.push(bundleFail3);
+
+  const dec3: any = {
+    id: "dec_init3",
+    bundleId: "bnd_fail_init3",
+    reasoning: "Bundle bnd_fail_init3 failed with an EXPIRED_BLOCKHASH classification. The blockhash anchored at slot " + (failedSlot3 - 155) + " exceeded the 150-slot validity window by 5 slots. This is a common failure when transactions are built with 'finalized' commitment-level blockhashes (already 30+ slots old at creation). Recovery: fetch a fresh blockhash using getLatestBlockhash('confirmed'), rebuild the transaction, and resubmit immediately. Tip level of 6,500,000 lamports is above the p75 floor — no tip adjustment required.",
+    confidence: 0.91,
+    action: "COMPOSITE",
+    parameters: {
+      tipMultiplier: 1.0,
+      targetPercentile: 75,
+      sequence: ["REFRESH_BLOCKHASH", "RETRY"]
+    },
+    outcome: "Blockhash refresh protocol initiated. Retry bundle queued.",
+    createdAt: new Date(Date.now() - 2 * 60000 + 800).toISOString()
+  };
+  decisions.push(dec3);
 }
 
 startServer();
