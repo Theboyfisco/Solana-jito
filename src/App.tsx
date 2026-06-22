@@ -54,6 +54,7 @@ export default function App() {
   const [activeFault, setActiveFault] = useState<string | null>(null);
   const [isLiveConnection, setIsLiveConnection] = useState<boolean>(false);
   const [loading, setLoading] = useState(true);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
   const [dispatchPercentile, setDispatchPercentile] = useState<number>(75);
   const [customTipLamports, setCustomTipLamports] = useState<number | null>(null);
   const [description, setDescription] = useState<string>("Jupiter Aggregator Swap (Raydium Vault Router)");
@@ -103,9 +104,12 @@ export default function App() {
       const healthData = await healthRes.json();
       setIsLiveConnection(healthData.aiMode === "LIVE_CLAUDE_API");
       
+      setConnectionError(null);
       setLoading(false);
     } catch (err) {
       console.error("Express API connection loss, retrying:", err);
+      setConnectionError("Failed to connect to the backend server. If you deployed this to a static host (like Vercel), ensure you are running the full Node.js Express server.");
+      setLoading(false);
     }
   };
 
@@ -312,6 +316,17 @@ export default function App() {
           <div className="flex flex-col items-center justify-center py-24 text-zinc-400 space-y-4">
             <RefreshCw className="h-8 w-8 animate-spin text-[#D4FF00]" />
             <p className="text-xs font-mono uppercase tracking-wider">Connecting to the Yellowstone Stream Ingestion node...</p>
+          </div>
+        ) : connectionError ? (
+          <div className="flex flex-col items-center justify-center py-24 text-red-500 space-y-4">
+            <div className="bg-red-500/10 border border-red-500/20 p-6 rounded-lg max-w-lg text-center">
+              <h3 className="font-bold text-lg mb-2">Backend Connection Failed</h3>
+              <p className="text-sm opacity-80">{connectionError}</p>
+              <p className="text-sm opacity-80 mt-4 font-mono bg-black/50 p-3 rounded">
+                This app requires a stateful Node.js backend to run the simulation loop. It cannot be hosted on purely static CDNs. 
+                Use Render, Railway, or a VPS with <span className="text-[#D4FF00]">npm run start</span>.
+              </p>
+            </div>
           </div>
         ) : (
           <div id="tab-viewport">
