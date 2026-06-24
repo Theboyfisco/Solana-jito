@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   Play, Cpu, Brain, History, Award, CheckCircle2, 
   HelpCircle, Sparkles, Sliders, AlertTriangle, ShieldCheck,
-  RefreshCw, Info, Wifi, Globe, MapPin, ChevronDown
+  RefreshCw, Info, Wifi, Globe, MapPin, ChevronDown, Activity, TrendingUp
 } from 'lucide-react';
 import { Bundle, AgentDecision, TipSnapshot, NetworkHealth, JitoLeaderSchedule } from './types';
 import NetworkStats from './components/NetworkStats';
@@ -61,6 +61,16 @@ export default function App() {
   const [activeRpc, setActiveRpc] = useState(rpcNodes[0]);
   const [rpcDropdownOpen, setRpcDropdownOpen] = useState(false);
   const rpcDropdownRef = useRef<HTMLDivElement>(null);
+
+  const failedBundles = bundles.filter((b) => ['FAILED', 'ABANDONED'].includes(b.status)).length;
+  const activeBundles = bundles.filter((b) => ['SUBMITTED', 'PROCESSED', 'CONFIRMED'].includes(b.status)).length;
+  const recommendedTip =
+    health.congestionScore > 0.7 ? 'p99' : health.congestionScore > 0.45 ? 'p95' : `p${dispatchPercentile}`;
+  const operatorState =
+    activeFault ? 'Fault recovery active' :
+    health.congestionScore > 0.7 ? 'High contention' :
+    activeBundles > 0 ? 'Bundles in flight' :
+    'Nominal operations';
 
   // Close RPC dropdown on outside click
   useEffect(() => {
@@ -183,28 +193,28 @@ export default function App() {
       {/* Top Header Workspace Status bar */}
       <header className="bg-[#121214] border-b border-[#222224] sticky top-0 z-40 relative overflow-hidden" id="global-header">
         <div className="absolute bottom-0 left-0 h-[1.5px] bg-gradient-to-r from-transparent via-[#D4FF00]/40 to-transparent w-full"></div>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-          <div className="flex items-center gap-3.5">
-            <div className="h-11 w-11 bg-[#D4FF00]/10 rounded-xl flex items-center justify-center border border-[#D4FF00]/30 relative shadow-inner">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 min-h-20 py-3 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3.5 min-w-0">
+            <div className="h-11 w-11 bg-[#D4FF00]/10 rounded-lg flex items-center justify-center border border-[#D4FF00]/30 relative shadow-inner shrink-0">
               <Cpu className="h-5 w-5 text-[#D4FF00] drop-shadow-[0_0_8px_#D4FF00]" />
               <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 bg-[#D4FF00] rounded-full border-2 border-[#121214] animate-pulse"></span>
             </div>
-            <div>
+            <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <h1 className="text-sm font-extrabold text-white tracking-widest leading-none uppercase font-mono">
+                <h1 className="text-sm font-extrabold text-white tracking-widest leading-none uppercase font-mono truncate">
                   Solana <span className="text-[#D4FF00]">Jito</span>-Stream
                 </h1>
-                <span className="bg-[#D4FF00]/10 border border-[#D4FF00]/20 text-[#D4FF00] text-[9px] font-mono font-black px-2 py-0.5 rounded-full uppercase tracking-widest">
+                <span className="hidden sm:inline-flex bg-[#D4FF00]/10 border border-[#D4FF00]/20 text-[#D4FF00] text-[9px] font-mono font-black px-2 py-0.5 rounded-full uppercase tracking-widest">
                   MAINNET ACTIVE
                 </span>
               </div>
-              <p className="text-[11px] text-[#888888] mt-1 font-sans">
-                Continuous Geyser Ingest &bull; AI Recovery Agent
+              <p className="text-[11px] text-[#888888] mt-1 font-sans truncate">
+                Continuous Geyser Ingest - AI Recovery Agent
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-3 lg:gap-6 shrink-0">
             {/* Real-time telemetry widgets inside header for peak pro vibe */}
             <div className="hidden lg:flex items-center gap-4 border-l border-[#222224] pl-6 font-mono text-[11px]">
               <div>
@@ -222,7 +232,7 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => setRpcDropdownOpen(!rpcDropdownOpen)}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#1e1e21] border border-[#222224] hover:border-[#D4FF00]/40 transition-all cursor-pointer text-zinc-200"
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#1e1e21] border border-[#222224] hover:border-[#D4FF00]/40 transition-all cursor-pointer text-zinc-200"
               >
                 <Wifi className="h-3 w-3 text-[#D4FF00] animate-pulse" />
                 <span className="font-extrabold uppercase text-[9px] hidden lg:inline">{activeRpc.name}</span>
@@ -232,7 +242,7 @@ export default function App() {
               </button>
 
               {rpcDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-56 bg-[#121214] border border-[#222224] rounded-xl shadow-2xl p-2 z-50">
+                <div className="absolute right-0 mt-2 w-56 bg-[#121214] border border-[#222224] rounded-lg shadow-2xl p-2 z-50">
                   <div className="px-2 py-1.5 text-[9px] text-[#666666] font-bold uppercase tracking-wider border-b border-[#222224] mb-1">
                     Select Geyser RPC Source
                   </div>
@@ -244,7 +254,7 @@ export default function App() {
                         setActiveRpc(node);
                         setRpcDropdownOpen(false);
                       }}
-                      className={`w-full flex items-center justify-between p-2 rounded-lg hover:bg-[#1e1e21] group text-left transition-colors cursor-pointer ${
+                      className={`w-full flex items-center justify-between p-2 rounded-md hover:bg-[#1e1e21] group text-left transition-colors cursor-pointer ${
                         activeRpc.name === node.name ? 'bg-[#1e1e21]' : ''
                       }`}
                     >
@@ -266,7 +276,7 @@ export default function App() {
             </div>
 
             {/* Status node */}
-            <div className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#1e1e21] border border-[#222224] shadow-md">
+            <div className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#1e1e21] border border-[#222224] shadow-md">
               <ShieldCheck className={`h-4 w-4 ${isLiveConnection ? 'text-purple-400' : 'text-amber-400'}`} />
               <span className="text-[9px] font-mono font-extrabold text-zinc-300 leading-none tracking-wider font-mono">
                 AI COCKPIT: {isLiveConnection ? 'LIVE CLAUDE' : 'HEURISTIC AGENT'}
@@ -285,7 +295,7 @@ export default function App() {
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
         
         {/* Navigation Tabs */}
-        <div className="flex space-x-1 border-b border-[#222224] mb-6" id="nav-tabs">
+        <div className="flex space-x-1 border-b border-[#222224] mb-6 overflow-x-auto" id="nav-tabs">
           {[
             { id: 'OVERVIEW', label: 'Monitor Dashboard', icon: Cpu },
             { id: 'LEDGER', label: 'Smart Bundle Ledger', icon: History },
@@ -298,7 +308,7 @@ export default function App() {
               <button
                 key={tab.id}
                 onClick={() => setCurrentTab(tab.id as any)}
-                className={`flex items-center gap-2 px-4 py-3 border-b-2 text-xs font-bold tracking-wide transition-all uppercase cursor-pointer select-none ${
+                className={`flex shrink-0 items-center gap-2 px-4 py-3 border-b-2 text-xs font-bold tracking-wide transition-all uppercase cursor-pointer select-none ${
                   isActive
                     ? 'border-[#D4FF00] text-[#D4FF00] font-black bg-[#121214]/40'
                     : 'border-transparent text-zinc-500 hover:text-white'
@@ -334,6 +344,26 @@ export default function App() {
             {/* 1. Dashboard Tab */}
             {currentTab === 'OVERVIEW' && (
               <div className="space-y-6" id="tab-overview">
+                <section className="grid grid-cols-1 md:grid-cols-4 gap-3" aria-label="Operator summary">
+                  {[
+                    { label: 'Operator State', value: operatorState, icon: Activity, tone: activeFault ? 'text-amber-400' : 'text-[#D4FF00]' },
+                    { label: 'Recommended Tip', value: recommendedTip, icon: TrendingUp, tone: recommendedTip === 'p99' ? 'text-amber-400' : 'text-[#D4FF00]' },
+                    { label: 'Active Bundles', value: activeBundles.toString(), icon: RefreshCw, tone: activeBundles > 0 ? 'text-cyan-400' : 'text-zinc-300' },
+                    { label: 'Failed / Abandoned', value: failedBundles.toString(), icon: AlertTriangle, tone: failedBundles > 0 ? 'text-rose-400' : 'text-zinc-300' },
+                  ].map((item) => {
+                    const Icon = item.icon;
+                    return (
+                      <div key={item.label} className="bg-[#121214] border border-[#222224] rounded-lg px-4 py-3 flex items-center justify-between">
+                        <div>
+                          <p className="text-[9px] text-[#666666] uppercase tracking-wider font-mono font-bold">{item.label}</p>
+                          <p className={`mt-1 text-sm font-mono font-black uppercase ${item.tone}`}>{item.value}</p>
+                        </div>
+                        <Icon className={`h-4 w-4 ${item.tone}`} />
+                      </div>
+                    );
+                  })}
+                </section>
+
                 {/* Stats widgets */}
                 <NetworkStats 
                   currentSlot={currentSlot}
@@ -367,7 +397,7 @@ export default function App() {
                     />
 
                     {/* Quick overview of latest bundle states */}
-                    <div className="bg-[#121214] border border-[#222224] rounded-[24px] p-6 shadow-2xl">
+                    <div className="bg-[#121214] border border-[#222224] rounded-lg p-6 shadow-2xl">
                       <div className="flex justify-between items-center mb-4 pb-3 border-b border-[#222224]">
                         <div className="flex items-center gap-1.5 text-xs font-bold text-white uppercase font-mono tracking-wider">
                           <History className="h-4 w-4 text-[#D4FF00]" /> Latest Activity
@@ -379,7 +409,7 @@ export default function App() {
                           View complete ledger &rarr;
                         </button>
                       </div>
-                      <BundleFeed bundles={bundles.slice(0, 5)} />
+                      <BundleFeed bundles={bundles.slice(0, 5)} compact />
                     </div>
 
                     {/* Live Event Pipeline Log */}

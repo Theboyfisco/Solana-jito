@@ -340,7 +340,7 @@ export default function ThreeDBlockVisualizer({ currentSlot, congestionScore, la
 
           // Draw floating label text above the newest 3D Jito ledger block 
           if (b.slot === currentSlot) {
-            ctx.fillStyle = '#white';
+            ctx.fillStyle = '#ffffff';
             ctx.font = 'bold 8px monospace';
             ctx.textAlign = 'center';
             ctx.fillText(`SLOT ${b.slot}`, center.px, center.py - (18 * center.scaleFactor));

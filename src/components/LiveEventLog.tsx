@@ -77,7 +77,7 @@ export default function LiveEventLog({ currentSlot, bundles, decisions, percenti
     if (tickRef.current % 10 === 1) {
       push({
         type: 'SLOT',
-        message: `Slot ${currentSlot.toLocaleString()} — Yellowstone heartbeat ✓`,
+        message: `Slot ${currentSlot.toLocaleString()} - Yellowstone heartbeat`,
         detail: `Congestion: ${(congestionScore * 100).toFixed(0)}% · Slot duration: 400ms`,
         slot: currentSlot
       });
@@ -88,7 +88,7 @@ export default function LiveEventLog({ currentSlot, bundles, decisions, percenti
       push({
         type: 'TIP',
         message: `Tip Intel update — p50: ${formatLamports(percentiles.p50)} · p75: ${formatLamports(percentiles.p75)} · p95: ${formatLamports(percentiles.p95)} lamports`,
-        detail: `p99 frontier: ${formatLamports(percentiles.p99)} lamports | Trend: ${congestionScore > 0.6 ? '📈 Rising' : '📊 Stable'}`,
+        detail: `p99 frontier: ${formatLamports(percentiles.p99)} lamports | Trend: ${congestionScore > 0.6 ? 'Rising' : 'Stable'}`,
         slot: currentSlot
       });
     }
@@ -113,14 +113,14 @@ export default function LiveEventLog({ currentSlot, bundles, decisions, percenti
       } else if (cur === 'PROCESSED') {
         push({
           type: 'LIFECYCLE',
-          message: `Bundle ${b.bundleId?.slice(0, 18) ?? b.id} → PROCESSED ✓`,
+          message: `Bundle ${b.bundleId?.slice(0, 18) ?? b.id} -> PROCESSED`,
           detail: b.processedAt ? `Landed in ~${new Date(b.processedAt).getTime() - new Date(b.submittedAt).getTime()}ms` : '',
           slot: b.processedSlot
         });
       } else if (cur === 'CONFIRMED') {
         push({
           type: 'LIFECYCLE',
-          message: `Bundle ${b.bundleId?.slice(0, 18) ?? b.id} → CONFIRMED ✓✓`,
+          message: `Bundle ${b.bundleId?.slice(0, 18) ?? b.id} -> CONFIRMED`,
           detail: b.confirmedAt && b.processedAt
             ? `processed→confirmed delta: ${new Date(b.confirmedAt).getTime() - new Date(b.processedAt).getTime()}ms`
             : '',
@@ -129,7 +129,7 @@ export default function LiveEventLog({ currentSlot, bundles, decisions, percenti
       } else if (cur === 'FINALIZED') {
         push({
           type: 'LIFECYCLE',
-          message: `Bundle ${b.bundleId?.slice(0, 18) ?? b.id} → FINALIZED ✓✓✓ 🏆`,
+          message: `Bundle ${b.bundleId?.slice(0, 18) ?? b.id} -> FINALIZED`,
           detail: `${b.retryCount > 0 ? `Retry #${b.retryCount} succeeded` : 'First-attempt success'}`,
           slot: b.finalizedSlot
         });
@@ -159,14 +159,14 @@ export default function LiveEventLog({ currentSlot, bundles, decisions, percenti
     for (const dec of newDecs) {
       push({
         type: 'AI',
-        message: `AI Agent → ${dec.action} decision (confidence: ${(dec.confidence * 100).toFixed(0)}%)`,
+        message: `AI Agent -> ${dec.action} decision (confidence: ${(dec.confidence * 100).toFixed(0)}%)`,
         detail: dec.reasoning.slice(0, 120) + (dec.reasoning.length > 120 ? '…' : ''),
         slot: currentSlot
       });
       if (dec.outcome && dec.outcome.includes('retry')) {
         push({
           type: 'RETRY',
-          message: `Retry Orchestrator → ${dec.outcome}`,
+          message: `Retry Orchestrator -> ${dec.outcome}`,
           detail: `Multiplier: ${dec.parameters.tipMultiplier}x · Target: p${dec.parameters.targetPercentile}`,
           slot: currentSlot
         });
@@ -178,7 +178,7 @@ export default function LiveEventLog({ currentSlot, bundles, decisions, percenti
   useEffect(() => {
     push({
       type: 'SYSTEM',
-      message: '🟢 Solana Smart Transaction Infrastructure — Engine ONLINE',
+      message: 'Solana Smart Transaction Infrastructure - Engine ONLINE',
       detail: 'Yellowstone Geyser stream active · Jito Tip Intelligence tracking · AI Recovery Agent ready',
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -241,7 +241,7 @@ export default function LiveEventLog({ currentSlot, bundles, decisions, percenti
                 : 'border-[#222224] text-zinc-500 hover:text-zinc-200'
             }`}
           >
-            {paused ? '▶ RESUME' : '⏸ PAUSE'}
+            {paused ? 'RESUME' : 'PAUSE'}
           </button>
 
           <button

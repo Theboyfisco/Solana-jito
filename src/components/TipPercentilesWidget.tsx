@@ -97,7 +97,7 @@ export default function TipPercentilesWidget({
 
         <p className="text-xs text-[#888888] leading-relaxed mb-4 font-sans">
           Real-time rolling Geyser transaction validator fees.
-          <span className="block mt-1 text-[#D4FF00] font-mono font-bold text-[10px] uppercase">💡 Click any tier to load into the dispatcher</span>
+          <span className="block mt-1 text-[#D4FF00] font-mono font-bold text-[10px] uppercase">Click any active tier to load it into the dispatcher</span>
         </p>
 
         {p75Values.length >= 2 && (

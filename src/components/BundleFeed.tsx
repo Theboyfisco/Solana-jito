@@ -7,9 +7,10 @@ import { Bundle } from '../types';
 
 interface BundleFeedProps {
   bundles: Bundle[];
+  compact?: boolean;
 }
 
-export default function BundleFeed({ bundles }: BundleFeedProps) {
+export default function BundleFeed({ bundles, compact = false }: BundleFeedProps) {
   const [filter, setFilter] = useState<'ALL' | 'ACTIVE' | 'SUCCESS' | 'FAILURE'>('ALL');
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
@@ -81,7 +82,7 @@ export default function BundleFeed({ bundles }: BundleFeedProps) {
   };
 
   return (
-    <div className="bg-[#121214] border border-[#222224] rounded-[24px] p-6 shadow-2xl" id="bundle-feed-container">
+    <div className={`${compact ? '' : 'bg-[#121214] border border-[#222224] rounded-lg p-6 shadow-2xl'}`} id="bundle-feed-container">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 border-b border-[#222224] pb-5">
         <div className="flex items-center gap-2">
           <History className="h-4 w-4 text-[#D4FF00]" />
@@ -92,7 +93,7 @@ export default function BundleFeed({ bundles }: BundleFeedProps) {
         </div>
 
         {/* Filter badging row */}
-        <div className="flex bg-[#1e1e21] border border-[#222224] rounded-lg p-0.5">
+        <div className="flex bg-[#1e1e21] border border-[#222224] rounded-lg p-0.5 overflow-x-auto max-w-full">
           {(['ALL', 'ACTIVE', 'SUCCESS', 'FAILURE'] as const).map((opt) => (
             <button
               key={opt}
@@ -109,7 +110,7 @@ export default function BundleFeed({ bundles }: BundleFeedProps) {
         </div>
       </div>
 
-      <div className="overflow-x-auto">
+      <div className="hidden md:block overflow-x-auto">
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="border-b border-[#222224] text-[10px] font-mono font-bold text-[#666666] tracking-wider">
@@ -271,6 +272,93 @@ export default function BundleFeed({ bundles }: BundleFeedProps) {
             )}
           </tbody>
         </table>
+      </div>
+
+      <div className="md:hidden space-y-3">
+        {filteredBundles.map((b) => {
+          const isExpanded = expandedId === b.id;
+          const hasFailure = b.status === 'FAILED' || b.status === 'ABANDONED';
+          const latency = getCommitmentLatency(b);
+
+          return (
+            <div key={b.id} className="bg-[#1a1a1d] border border-[#222224] rounded-lg overflow-hidden">
+              <button
+                type="button"
+                onClick={() => toggleRow(b.id)}
+                className="w-full p-3.5 text-left cursor-pointer"
+                id={`ledger-card-${b.id}`}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5 text-white">
+                      {isExpanded ? <ChevronDown className="h-4 w-4 shrink-0 text-[#D4FF00]" /> : <ChevronRight className="h-4 w-4 shrink-0 text-[#666666]" />}
+                      <span className="font-mono font-black text-[11px] truncate">{b.bundleId || b.id}</span>
+                    </div>
+                    <p className="mt-1 text-xs text-zinc-300 font-semibold truncate">{b.payloadDesc}</p>
+                    {b.parentBundleId && (
+                      <p className="text-[10px] text-[#D4FF00] font-mono mt-1">Retry of {b.parentBundleId}</p>
+                    )}
+                  </div>
+                  <div className="shrink-0">{getStatusBadge(b.status)}</div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2 mt-3 text-[10px] font-mono">
+                  <div className="bg-[#121214] rounded-md border border-[#222224] p-2">
+                    <span className="block text-[#666666] uppercase">Tip</span>
+                    <span className="text-white font-bold">{(b.tipLamports / 1000000000).toFixed(4)} SOL</span>
+                  </div>
+                  <div className="bg-[#121214] rounded-md border border-[#222224] p-2">
+                    <span className="block text-[#666666] uppercase">Submit</span>
+                    <span className="text-white font-bold">{b.submissionSlot}</span>
+                  </div>
+                  <div className="bg-[#121214] rounded-md border border-[#222224] p-2">
+                    <span className="block text-[#666666] uppercase">Confirm</span>
+                    <span className="text-cyan-400 font-bold">{b.confirmedSlot ? `+${b.confirmedSlot - b.submissionSlot}` : '-'}</span>
+                  </div>
+                </div>
+              </button>
+
+              {isExpanded && (
+                <div className="border-t border-[#222224] p-3.5 text-xs text-zinc-300 space-y-3">
+                  <div className="space-y-2">
+                    <div className="flex justify-between gap-3">
+                      <span className="text-[#888888]">Signature</span>
+                      <span className="font-mono text-white truncate">{b.signature ? `${b.signature.slice(0, 10)}...${b.signature.slice(-10)}` : 'N/A'}</span>
+                    </div>
+                    <div className="flex justify-between gap-3">
+                      <span className="text-[#888888]">Blockhash age</span>
+                      <span className="font-mono text-zinc-300">{b.submissionSlot - b.blockhashSlot} slots</span>
+                    </div>
+                    {latency && (
+                      <div className="flex justify-between gap-3">
+                        <span className="text-[#888888]">Processed latency</span>
+                        <span className="font-mono text-[#D4FF00]">{latency.processedMs} ms</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {hasFailure ? (
+                    <div className="rounded-lg border border-rose-500/20 bg-rose-500/10 p-3">
+                      <p className="font-mono text-rose-400 text-[10px] uppercase font-bold">{b.failureCategory}</p>
+                      <p className="mt-1 text-[11px] leading-relaxed text-zinc-300">{b.failureReason}</p>
+                    </div>
+                  ) : (
+                    <div className="rounded-lg border border-[#D4FF00]/20 bg-[#D4FF00]/10 p-3 flex gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-[#D4FF00] shrink-0 mt-0.5" />
+                      <p className="text-[11px] leading-relaxed text-zinc-300">Lifecycle is healthy. No retry action is required for this bundle.</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
+
+        {filteredBundles.length === 0 && (
+          <div className="text-center py-10 text-[#666666] text-xs font-mono uppercase">
+            No bundles match the current status filter.
+          </div>
+        )}
       </div>
     </div>
   );

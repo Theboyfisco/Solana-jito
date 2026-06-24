@@ -12,7 +12,7 @@ interface ProtobufSandboxProps {
     p99: number;
   };
   congestionScore: number;
-  onSetCustomTip: (lamports: number) => void;
+  onSetCustomTip: (lamports: number | null) => void;
   customTipLamports: number | null;
 }
 
@@ -169,7 +169,7 @@ export default function ProtobufSandbox({
 
             {customTipLamports !== null && (
               <button 
-                onClick={() => onSetCustomTip(null as any)}
+                onClick={() => onSetCustomTip(null)}
                 className="absolute top-4 right-4 bg-[#D4FF00]/10 text-[#D4FF00] hover:bg-[#D4FF00]/20 text-[9px] font-mono font-bold px-2 py-0.5 rounded uppercase cursor-pointer"
                 title="Reset to selected strategy preset"
               >
@@ -227,7 +227,7 @@ export default function ProtobufSandbox({
                 <span className="absolute bottom-2 right-2 bg-[#222224] text-[#666666] text-[8px] px-1.5 py-0.5 rounded">HEX</span>
               </div>
               <p className="text-[9px] font-mono text-zinc-500 uppercase tracking-wide text-right">
-                💡 Double click to copy raw transaction bytecode
+                Double click to copy raw transaction bytecode
               </p>
             </div>
           )}
