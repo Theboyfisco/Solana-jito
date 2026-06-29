@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   Play, Cpu, Brain, History, Award, CheckCircle2, 
   HelpCircle, Sparkles, Sliders, AlertTriangle, ShieldCheck,
-  RefreshCw, Info, Wifi, Globe, MapPin, ChevronDown, Activity, TrendingUp
+  RefreshCw, Info, Wifi, Globe, MapPin, ChevronDown, Activity, TrendingUp,
+  Download, FileCheck2, Rocket, FlaskConical
 } from 'lucide-react';
 import { Bundle, AgentDecision, TipSnapshot, NetworkHealth, JitoLeaderSchedule } from './types';
 import NetworkStats from './components/NetworkStats';
@@ -55,6 +56,9 @@ export default function App() {
   const [isLiveConnection, setIsLiveConnection] = useState<boolean>(false);
   const [loading, setLoading] = useState(true);
   const [connectionError, setConnectionError] = useState<string | null>(null);
+  const [infrastructureMode, setInfrastructureMode] = useState<'LIVE_INFRASTRUCTURE' | 'COMPETITION_SIMULATOR'>('COMPETITION_SIMULATOR');
+  const [capabilities, setCapabilities] = useState<Record<string, string>>({});
+  const [demoRunning, setDemoRunning] = useState(false);
   const [dispatchPercentile, setDispatchPercentile] = useState<number>(75);
   const [customTipLamports, setCustomTipLamports] = useState<number | null>(null);
   const [description, setDescription] = useState<string>("Jupiter Aggregator Swap (Raydium Vault Router)");
@@ -113,6 +117,8 @@ export default function App() {
       const healthRes = await fetch("/api/health");
       const healthData = await healthRes.json();
       setIsLiveConnection(healthData.aiMode === "LIVE_CLAUDE_API");
+      setInfrastructureMode(healthData.infrastructureMode || "COMPETITION_SIMULATOR");
+      setCapabilities(healthData.capabilities || {});
       
       setConnectionError(null);
       setLoading(false);
@@ -187,6 +193,38 @@ export default function App() {
     }
   };
 
+  const handleRunDemoGauntlet = async () => {
+    setDemoRunning(true);
+    try {
+      await fetch("/api/demo/gauntlet", { method: "POST" });
+      setTimeout(() => {
+        fetchState();
+        setDemoRunning(false);
+      }, 7500);
+    } catch (err) {
+      console.error("Demo gauntlet error:", err);
+      setDemoRunning(false);
+    }
+  };
+
+  const handleExportEvidence = async () => {
+    try {
+      const res = await fetch("/api/evidence");
+      const data = await res.json();
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `solana-smart-stack-evidence-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}.json`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Evidence export error:", err);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#0a0a0b] text-white flex flex-col font-sans overflow-x-hidden" id="applet-root">
       
@@ -204,12 +242,18 @@ export default function App() {
                 <h1 className="text-sm font-extrabold text-white tracking-widest leading-none uppercase font-mono truncate">
                   Solana <span className="text-[#D4FF00]">Jito</span>-Stream
                 </h1>
-                <span className="hidden sm:inline-flex bg-[#D4FF00]/10 border border-[#D4FF00]/20 text-[#D4FF00] text-[9px] font-mono font-black px-2 py-0.5 rounded-full uppercase tracking-widest">
-                  MAINNET ACTIVE
+                <span className={`hidden sm:inline-flex text-[9px] font-mono font-black px-2 py-0.5 rounded-full uppercase tracking-widest border ${
+                  infrastructureMode === 'LIVE_INFRASTRUCTURE'
+                    ? 'bg-[#D4FF00]/10 border-[#D4FF00]/20 text-[#D4FF00]'
+                    : 'bg-cyan-500/10 border-cyan-500/20 text-cyan-300'
+                }`}>
+                  {infrastructureMode === 'LIVE_INFRASTRUCTURE' ? 'LIVE INFRA' : 'SIM MODE'}
                 </span>
               </div>
               <p className="text-[11px] text-[#888888] mt-1 font-sans truncate">
-                Continuous Geyser Ingest - AI Recovery Agent
+                {infrastructureMode === 'LIVE_INFRASTRUCTURE'
+                  ? 'Live Geyser ingest - AI recovery agent'
+                  : 'Offline infra simulator - AI recovery agent'}
               </p>
             </div>
           </div>
@@ -218,7 +262,7 @@ export default function App() {
             {/* Real-time telemetry widgets inside header for peak pro vibe */}
             <div className="hidden lg:flex items-center gap-4 border-l border-[#222224] pl-6 font-mono text-[11px]">
               <div>
-                <div className="text-[9px] text-[#666666] uppercase font-bold">GEYSER SPEED</div>
+                <div className="text-[9px] text-[#666666] uppercase font-bold">STREAM SPEED</div>
                 <div className="text-white font-extrabold">{health.tps.toLocaleString()} TPS</div>
               </div>
               <div>
@@ -344,6 +388,65 @@ export default function App() {
             {/* 1. Dashboard Tab */}
             {currentTab === 'OVERVIEW' && (
               <div className="space-y-6" id="tab-overview">
+                <section className="bg-[#121214] border border-cyan-500/20 rounded-lg p-4 shadow-2xl relative overflow-hidden" id="judge-demo-console">
+                  <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-cyan-400 via-[#D4FF00] to-purple-400" />
+                  <div className="grid grid-cols-1 lg:grid-cols-[1.3fr_1fr] gap-4 items-center">
+                    <div className="flex items-start gap-3">
+                      <div className="h-10 w-10 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center shrink-0">
+                        <FlaskConical className="h-5 w-5 text-cyan-300" />
+                      </div>
+                      <div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h2 className="text-sm font-mono font-black uppercase tracking-wider text-white">Competition Simulator Mode Evidence Console</h2>
+                          <span className="text-[9px] font-mono font-black uppercase tracking-widest px-2 py-0.5 rounded border border-cyan-500/25 bg-cyan-500/10 text-cyan-300">
+                            No paid infra required
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-[#888888] mt-1 leading-relaxed max-w-3xl">
+                          This mode is explicit: it replays the same operational problems the bounty asks for locally, including leader windows,
+                          dynamic tip floors, blockhash expiry, low-tip auction loss, skipped leaders, AI decisions, retries, and lifecycle evidence.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={handleRunDemoGauntlet}
+                        disabled={demoRunning}
+                        className="bg-[#D4FF00] text-black rounded-lg px-4 py-3 font-mono font-black text-[11px] uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
+                      >
+                        {demoRunning ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Rocket className="h-4 w-4" />}
+                        {demoRunning ? 'Running gauntlet' : 'Run judge gauntlet'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleExportEvidence}
+                        className="bg-[#1e1e21] border border-[#222224] hover:border-cyan-500/40 text-cyan-300 rounded-lg px-4 py-3 font-mono font-black text-[11px] uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer"
+                      >
+                        <Download className="h-4 w-4" />
+                        Export evidence
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mt-4">
+                    {[
+                      { label: 'Stream layer', value: capabilities.geyserStream || 'simulated slot and tip stream' },
+                      { label: 'Jito layer', value: capabilities.jitoSubmission || 'simulated block-engine queue' },
+                      { label: 'AI layer', value: capabilities.aiDecisioning || (isLiveConnection ? 'live Claude API' : 'deterministic heuristic agent') },
+                    ].map((item) => (
+                      <div key={item.label} className="bg-[#0b0b0c] border border-[#222224] rounded-lg p-3 flex items-start gap-2">
+                        <FileCheck2 className="h-4 w-4 text-[#D4FF00] shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-[9px] text-[#666666] font-mono uppercase tracking-wider font-bold">{item.label}</p>
+                          <p className="text-[11px] text-zinc-300 mt-0.5 capitalize">{item.value}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+
                 <section className="grid grid-cols-1 md:grid-cols-4 gap-3" aria-label="Operator summary">
                   {[
                     { label: 'Operator State', value: operatorState, icon: Activity, tone: activeFault ? 'text-amber-400' : 'text-[#D4FF00]' },
@@ -370,6 +473,7 @@ export default function App() {
                   leaderContext={leaderContext}
                   health={health}
                   activeFault={activeFault}
+                  infrastructureMode={infrastructureMode}
                 />
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -473,8 +577,8 @@ export default function App() {
       <footer className="bg-[#121214] border-t border-[#222224] py-8 mt-12 text-center text-xs text-[#666666] font-sans" id="global-footer">
         <div className="max-w-7xl mx-auto px-4 space-y-1">
           <p className="uppercase tracking-wider font-bold text-zinc-400 text-[11px]">&copy; 2026 Solana Smart Transaction Infrastructure Stack</p>
-          <p className="text-[#888888]">Powered by Triton Yellowstone &amp; Jito Block Engine.</p>
-          <p className="pt-2 text-[10px] font-mono text-[#D4FF00] uppercase tracking-wider">Designed for performance, built to win.</p>
+          <p className="text-[#888888]">Offline simulator with live-compatible Yellowstone and Jito service boundaries.</p>
+          <p className="pt-2 text-[10px] font-mono text-[#D4FF00] uppercase tracking-wider">Built to demonstrate transaction infrastructure decisions without paid infra.</p>
         </div>
       </footer>
 

@@ -8,6 +8,7 @@ import { initFailureClassifier } from './classifier/failure-classifier';
 import { initAiAgent, getAiClient } from './agent/agent';
 import { initRetryOrchestrator } from './retry/retry-orchestrator';
 import { Bundle, AgentDecision, TipSnapshot, NetworkHealth } from './types';
+import { buildBundle } from './bundle/bundle-builder';
 
 // Shared in‑memory state for API endpoints
 export const health: NetworkHealth = {
@@ -35,7 +36,6 @@ export function setCongestionScore(score: number) {
 }
 /** Submit a new bundle – builds then persists via the submission service */
 export function submitBundle(percentile: number, description: string, forceParams?: Partial<Bundle>) {
-  const { buildBundle } = require('./bundle/bundle-builder') as typeof import('./bundle/bundle-builder');
   const payload = buildBundle(percentile, description, forceParams);
   return submitBundleToNetwork(payload);
 }

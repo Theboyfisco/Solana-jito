@@ -97,7 +97,7 @@ export default function FaultControls({
           </h3>
         </div>
         <p className="text-[11px] text-[#888888] mb-5 leading-relaxed font-sans">
-          Construct, sign, and broadcast smart Jito bundles with dynamic tip injection relative to active Geyser percentiles.
+          Construct simulator bundles with dynamic tip injection against replayed Geyser-style percentile data.
         </p>
 
         <form onSubmit={handleManualSubmit} className="space-y-4">
@@ -159,7 +159,7 @@ export default function FaultControls({
             ) : (
               <Play className="h-3.5 w-3.5 shrink-0 fill-black" />
             )}
-            {isSubmitting ? 'Broadcasting…' : 'Broadcast Smart Bundle'}
+            {isSubmitting ? 'Queuing...' : 'Queue Smart Bundle'}
           </button>
         </form>
       </div>
@@ -180,7 +180,7 @@ export default function FaultControls({
           </h3>
         </div>
         <p className="text-[11px] text-[#888888] mb-5 leading-relaxed font-sans">
-          Trigger fault scenarios to evaluate real-time Failure Classification and autonomous AI Agent recovery.
+          Trigger judge-visible failure cases to evaluate classification, AI reasoning, and autonomous retry behavior.
         </p>
 
         <div className="space-y-3">

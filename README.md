@@ -7,11 +7,15 @@
 >
 > **Live Demo:** `npm run dev` → http://localhost:3000
 
+> **Default mode:** Competition Simulator. The app runs without paid Jito/Yellowstone access by replaying slot, tip, leader, lifecycle, fault, AI, and retry behavior through the same service boundaries a live deployment would use. See [`docs/SIMULATOR_MODE.md`](./docs/SIMULATOR_MODE.md).
+
 ---
 
 ## 🧠 System Overview
 
-This project implements a production-grade, AI-driven Solana transaction infrastructure stack that monitors the network in real-time, constructs and submits Jito bundles with dynamic tip pricing, tracks the full lifecycle from submission through finalization, autonomously classifies failures, and uses an AI agent (Claude 3.5 Sonnet) to make recovery decisions — all without any hardcoded retry logic.
+This project implements an AI-driven Solana transaction infrastructure simulator with live-compatible service boundaries. In simulator mode it monitors a local Yellowstone-style stream, constructs Jito-style bundle payloads with dynamic tip pricing, tracks lifecycle stages from submission through finalization, classifies failures, and uses an AI agent to make recovery decisions. With paid infrastructure credentials configured, the same architecture is intended to connect to live providers.
+
+The demo intentionally labels simulator mode in the UI. This is important: the default project is designed to demonstrate transaction-infrastructure reasoning without requiring expensive paid Solana infrastructure.
 
 ---
 
@@ -146,6 +150,18 @@ PORT=3000
 ```
 
 Without `GEYSER_ENDPOINT`, the system starts a deterministic 400ms slot simulation heartbeat that mirrors Solana mainnet timing.
+
+### Judge Demo Without Paid Infrastructure
+
+The dashboard includes a **Competition Simulator Evidence Console**:
+
+- **Run judge gauntlet** schedules a normal bundle, low-tip failure, blockhash-expiry failure, and skipped-leader failure.
+- The lifecycle engine classifies each failure.
+- The AI agent emits a recovery decision.
+- The retry orchestrator launches child bundles with parent lineage.
+- **Export evidence** downloads a JSON snapshot of bundles, decisions, snapshots, failure categories, and current tip percentiles.
+
+This mode is the recommended path when Jito/Yellowstone access is unavailable.
 
 ### Quickstart
 ```bash

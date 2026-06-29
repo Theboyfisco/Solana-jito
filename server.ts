@@ -22,6 +22,8 @@ process.on('uncaughtException', (error) => {
 async function startServer() {
   const app = express();
   const PORT = 3000;
+  const hasGeyser = !!(process.env.GEYSER_ENDPOINT && process.env.GEYSER_TOKEN);
+  const hasJito = !!(process.env.JITO_AUTH_KEYPAIR && !["YOUR_JITO_AUTH_KEYPAIR", "MY_JITO_AUTH_KEYPAIR"].includes(process.env.JITO_AUTH_KEYPAIR));
 
   // Middleware
   app.use(express.json());
@@ -36,7 +38,13 @@ async function startServer() {
     res.json({ 
       status: "ok", 
       time: new Date().toISOString(),
-      aiMode: isLiveAi ? "LIVE_CLAUDE_API" : "HEURISTIC_REASONING_SIMULATION"
+      aiMode: isLiveAi ? "LIVE_CLAUDE_API" : "HEURISTIC_REASONING_SIMULATION",
+      infrastructureMode: hasGeyser && hasJito ? "LIVE_INFRASTRUCTURE" : "COMPETITION_SIMULATOR",
+      capabilities: {
+        geyserStream: hasGeyser ? "configured" : "simulated slot and tip stream",
+        jitoSubmission: hasJito ? "configured" : "simulated block-engine queue",
+        aiDecisioning: isLiveAi ? "live Claude API" : "deterministic heuristic agent"
+      }
     });
   });
 
@@ -108,6 +116,63 @@ async function startServer() {
       success: true, 
       message: `Congestion score set to: ${s}`,
       health 
+    });
+  });
+
+  app.post("/api/demo/gauntlet", (req, res) => {
+    setCongestionScore(0.72);
+
+    const steps = [
+      { delay: 0, fault: null, percentile: 95, description: "Judge Demo: high-priority Jupiter swap" },
+      { delay: 1600, fault: "LOW_TIP", percentile: 50, description: "Judge Demo: forced underfloor Jito bid" },
+      { delay: 3600, fault: "BLOCKHASH_EXPIRY", percentile: 75, description: "Judge Demo: expired blockhash recovery" },
+      { delay: 5600, fault: "LEADER_SKIP", percentile: 75, description: "Judge Demo: skipped Jito leader window" },
+    ];
+
+    steps.forEach((step) => {
+      setTimeout(() => {
+        if (step.fault) setNextFault(step.fault);
+        submitBundle(step.percentile, step.description);
+      }, step.delay);
+    });
+
+    res.status(202).json({
+      success: true,
+      message: "Autonomous demo gauntlet started. Watch the ledger, AI decisions, 3D arena, and live event log for recovery actions.",
+      scheduledSteps: steps.map(({ delay, fault, percentile, description }) => ({ delayMs: delay, fault, percentile, description }))
+    });
+  });
+
+  app.get("/api/evidence", (req, res) => {
+    const finalized = bundles.filter((b: any) => b.status === "FINALIZED").length;
+    const failed = bundles.filter((b: any) => ["FAILED", "ABANDONED"].includes(b.status)).length;
+    const retries = bundles.filter((b: any) => b.parentBundleId).length;
+    const categories = bundles.reduce((acc: Record<string, number>, b: any) => {
+      if (b.failureCategory) acc[b.failureCategory] = (acc[b.failureCategory] || 0) + 1;
+      return acc;
+    }, {});
+
+    res.json({
+      generatedAt: new Date().toISOString(),
+      mode: hasGeyser && hasJito ? "LIVE_INFRASTRUCTURE" : "COMPETITION_SIMULATOR",
+      note: hasGeyser && hasJito
+        ? "Live infrastructure variables are configured."
+        : "Offline simulator mode: slot stream, Jito leader windows, tip percentiles, faults, lifecycle transitions, and agent decisions are deterministic local substitutes for paid infrastructure.",
+      summary: {
+        currentSlot,
+        totalBundles: bundles.length,
+        finalized,
+        failed,
+        retries,
+        aiDecisions: decisions.length,
+        failureCategories: categories,
+        currentTipPercentiles: getTipPercentiles(),
+        leaderContext: getLeaderContext(),
+        health
+      },
+      bundles,
+      decisions,
+      snapshots
     });
   });
 

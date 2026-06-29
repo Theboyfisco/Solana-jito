@@ -7,10 +7,12 @@ interface NetworkStatsProps {
   leaderContext: JitoLeaderSchedule;
   health: NetworkHealth;
   activeFault: string | null;
+  infrastructureMode?: 'LIVE_INFRASTRUCTURE' | 'COMPETITION_SIMULATOR';
 }
 
-export default function NetworkStats({ currentSlot, leaderContext, health, activeFault }: NetworkStatsProps) {
+export default function NetworkStats({ currentSlot, leaderContext, health, activeFault, infrastructureMode = 'COMPETITION_SIMULATOR' }: NetworkStatsProps) {
   const landingRatePct = (health.recentLandingRate * 100).toFixed(0);
+  const isLive = infrastructureMode === 'LIVE_INFRASTRUCTURE';
   
   // Calculate relative positions for the mock pipeline ticks
   const futureTicks = [
@@ -27,7 +29,7 @@ export default function NetworkStats({ currentSlot, leaderContext, health, activ
         <div className="bg-[#121214] border border-[#222224] rounded-[24px] p-6 shadow-2xl relative overflow-hidden flex flex-col justify-between transition-all duration-300 hover:border-[#D4FF00]/40 group" id="slot-card">
           <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-[#D4FF00] to-transparent opacity-70"></div>
           <div className="flex justify-between items-start mb-4">
-            <span className="text-[11px] font-mono font-bold tracking-wider text-[#888888] uppercase">SOLANA CURRENT SLOT</span>
+            <span className="text-[11px] font-mono font-bold tracking-wider text-[#888888] uppercase">{isLive ? 'SOLANA CURRENT SLOT' : 'SIMULATED SLOT CLOCK'}</span>
             <div className="flex h-2.5 w-2.5 relative">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#D4FF00] opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#D4FF00]"></span>
@@ -37,7 +39,7 @@ export default function NetworkStats({ currentSlot, leaderContext, health, activ
             <h2 className="text-3xl font-mono font-extrabold text-white tracking-tight">{currentSlot.toLocaleString()}</h2>
             <p className="text-xs text-[#888888] mt-2 flex items-center gap-1.5 font-mono">
               <RefreshCw className="h-3 w-3 animate-spin text-[#D4FF00]" />
-              Live Yellowstone Stream
+              {isLive ? 'Live Yellowstone Stream' : 'Local 400ms Slot Replay'}
             </p>
           </div>
         </div>
@@ -45,7 +47,7 @@ export default function NetworkStats({ currentSlot, leaderContext, health, activ
         {/* Jito Leader Card */}
         <div className="bg-[#121214] border border-[#222224] rounded-[24px] p-6 shadow-2xl relative overflow-hidden flex flex-col justify-between transition-all duration-300 hover:border-[#D4FF00]/40" id="jito-leader-card">
           <div className="flex justify-between items-start mb-4">
-            <span className="text-[11px] font-mono font-bold tracking-wider text-[#888888] uppercase">NEXT JITO LEADER</span>
+            <span className="text-[11px] font-mono font-bold tracking-wider text-[#888888] uppercase">{isLive ? 'NEXT JITO LEADER' : 'SIMULATED JITO LEADER'}</span>
             <Cpu className="h-4 w-4 text-[#D4FF00]" />
           </div>
           <div>
@@ -62,7 +64,7 @@ export default function NetworkStats({ currentSlot, leaderContext, health, activ
           {leaderContext.slotsUntilJitoLeader <= 2 && (
             <div className="absolute inset-x-0 bottom-0 bg-[#D4FF00]/10 text-[#D4FF00] text-[10px] font-mono py-1.5 px-3 text-center border-t border-[#D4FF00]/20 flex items-center justify-center gap-1.5 animate-pulse">
               <span className="h-1.5 w-1.5 rounded-full bg-[#D4FF00]"></span>
-              Leader Approaching: Jito Gates Open
+              Leader Approaching: Submit Gate Opens
             </div>
           )}
         </div>
@@ -97,7 +99,7 @@ export default function NetworkStats({ currentSlot, leaderContext, health, activ
         {/* Global Landing Rate */}
         <div className="bg-[#121214] border border-[#222224] rounded-[24px] p-6 shadow-2xl relative overflow-hidden flex flex-col justify-between transition-all duration-300 hover:border-[#D4FF00]/40" id="landing-rate-card">
           <div className="flex justify-between items-start mb-4">
-            <span className="text-[11px] font-mono font-bold tracking-wider text-[#888888] uppercase">JITO LANDING RATE</span>
+            <span className="text-[11px] font-mono font-bold tracking-wider text-[#888888] uppercase">{isLive ? 'JITO LANDING RATE' : 'SIM LANDING RATE'}</span>
             <TrendingUp className="h-4 w-4 text-[#D4FF00]" />
           </div>
           <div>
@@ -115,7 +117,7 @@ export default function NetworkStats({ currentSlot, leaderContext, health, activ
         </div>
       </div>
 
-      {/* Yellowstone Live Stream Pipeline Track - UI & UX highlight! */}
+      {/* Stream pipeline track */}
       <div className="bg-[#121214] border border-[#222224]/80 rounded-[20px] p-5 relative overflow-hidden grid-mesh">
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
           <div className="flex items-center gap-2.5">
@@ -123,8 +125,12 @@ export default function NetworkStats({ currentSlot, leaderContext, health, activ
               <Radio className="h-4 w-4 text-[#D4FF00] animate-pulse" />
             </div>
             <div>
-              <h4 className="text-[11px] font-mono font-black text-white uppercase tracking-wider">Triton Yellowstone Ingestion Pipeline</h4>
-              <p className="text-[10px] text-[#888888] font-sans">Decoding live Mainnet-Beta protobuf notifications on-the-fly</p>
+              <h4 className="text-[11px] font-mono font-black text-white uppercase tracking-wider">
+                {isLive ? 'Triton Yellowstone Ingestion Pipeline' : 'Yellowstone-Compatible Replay Pipeline'}
+              </h4>
+              <p className="text-[10px] text-[#888888] font-sans">
+                {isLive ? 'Decoding Mainnet-Beta protobuf notifications on-the-fly' : 'Replaying slot, tip, and lifecycle events through the same service boundaries'}
+              </p>
             </div>
           </div>
 
