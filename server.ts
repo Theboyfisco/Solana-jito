@@ -21,12 +21,23 @@ process.on('uncaughtException', (error) => {
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  const PORT = Number(process.env.PORT || 3000);
   const hasGeyser = !!(process.env.GEYSER_ENDPOINT && process.env.GEYSER_TOKEN);
   const hasJito = !!(process.env.JITO_AUTH_KEYPAIR && !["YOUR_JITO_AUTH_KEYPAIR", "MY_JITO_AUTH_KEYPAIR"].includes(process.env.JITO_AUTH_KEYPAIR));
 
   // Middleware
-  app.use(express.json());
+  app.disable("x-powered-by");
+  app.set("trust proxy", 1);
+  app.use(express.json({ limit: "256kb" }));
+  app.use((req, res, next) => {
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+    res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+    if (req.path.startsWith("/api/")) {
+      res.setHeader("Cache-Control", "no-store");
+    }
+    next();
+  });
 
   // Background Solana Smart Chain Simulator startup
   startEngine();
@@ -45,6 +56,15 @@ async function startServer() {
         jitoSubmission: hasJito ? "configured" : "simulated block-engine queue",
         aiDecisioning: isLiveAi ? "live Claude API" : "deterministic heuristic agent"
       }
+    });
+  });
+
+  app.get("/api/ready", (req, res) => {
+    res.json({
+      ready: true,
+      mode: hasGeyser && hasJito ? "LIVE_INFRASTRUCTURE" : "COMPETITION_SIMULATOR",
+      bundles: bundles.length,
+      decisions: decisions.length
     });
   });
 
@@ -188,20 +208,33 @@ async function startServer() {
     app.use(vite.middlewares);
   } else {
     const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath));
+    app.use(express.static(distPath, {
+      maxAge: "1h",
+      etag: true,
+      immutable: false
+    }));
     app.get('*', (req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }
 
   // Bind exclusively to 0.0.0.0 & Port 3000 inside containers
-  app.listen(PORT, "0.0.0.0", () => {
+  const server = app.listen(PORT, "0.0.0.0", () => {
     console.log(`=======================================================`);
-    console.log(`🚀 SOLANA SMART TRANSACTION INFRASTRUCTURE ONLINE!`);
-    console.log(`🔗 Interface running on: http://localhost:${PORT}`);
-    console.log(`📡 Simulation loop started at slot: ${currentSlot}`);
+    console.log(`SOLANA SMART TRANSACTION INFRASTRUCTURE ONLINE`);
+    console.log(`Interface running on: http://localhost:${PORT}`);
+    console.log(`Mode: ${hasGeyser && hasJito ? "LIVE_INFRASTRUCTURE" : "COMPETITION_SIMULATOR"}`);
+    console.log(`Simulation loop started at slot: ${currentSlot}`);
     console.log(`=======================================================`);
   });
+
+  const shutdown = () => {
+    console.log("Shutting down server...");
+    server.close(() => process.exit(0));
+    setTimeout(() => process.exit(1), 5000).unref();
+  };
+  process.on("SIGTERM", shutdown);
+  process.on("SIGINT", shutdown);
 }
 
 function seedInitialData() {

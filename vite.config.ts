@@ -14,5 +14,17 @@ export default defineConfig(() => {
     server: {
       hmr: true,
     },
+    build: {
+      chunkSizeWarningLimit: 900,
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            react: ['react', 'react-dom'],
+            three: ['three'],
+            icons: ['lucide-react'],
+          },
+        },
+      },
+    },
   };
 });

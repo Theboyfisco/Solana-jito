@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { Suspense, lazy, useState, useEffect, useRef } from 'react';
 import { 
   Play, Cpu, Brain, History, Award, CheckCircle2, 
   HelpCircle, Sparkles, Sliders, AlertTriangle, ShieldCheck,
@@ -14,8 +14,9 @@ import AiDecisions from './components/AiDecisions';
 import BountyQuestions from './components/BountyQuestions';
 import ProtobufSandbox from './components/ProtobufSandbox';
 import AiTuningStudio from './components/AiTuningStudio';
-import ThreeDBlockVisualizer from './components/ThreeDBlockVisualizer';
 import LiveEventLog from './components/LiveEventLog';
+
+const ThreeDBlockVisualizer = lazy(() => import('./components/ThreeDBlockVisualizer'));
 
 const rpcNodes = [
   { name: "Triton Mainnet (Tokyo)", latency: 38, location: "Tokyo, JP" },
@@ -528,11 +529,20 @@ export default function App() {
 
                   {/* Right matrix column */}
                   <div className="lg:col-span-1 space-y-6">
-                    <ThreeDBlockVisualizer 
-                      currentSlot={currentSlot}
-                      congestionScore={health.congestionScore}
-                      latestBundles={bundles}
-                    />
+                    <Suspense
+                      fallback={
+                        <div className="h-[360px] bg-[#121214] border border-[#222224] rounded-lg shadow-2xl flex items-center justify-center text-[#888888] font-mono text-[11px] uppercase tracking-wider">
+                          <RefreshCw className="h-4 w-4 mr-2 animate-spin text-[#D4FF00]" />
+                          Loading 3D block engine arena
+                        </div>
+                      }
+                    >
+                      <ThreeDBlockVisualizer 
+                        currentSlot={currentSlot}
+                        congestionScore={health.congestionScore}
+                        latestBundles={bundles}
+                      />
+                    </Suspense>
 
                     <TipPercentilesWidget 
                       percentiles={percentiles}

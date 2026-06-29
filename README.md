@@ -1,237 +1,171 @@
-# Solana Jito-Yellowstone Smart Transaction Infrastructure Stack
-### Complete Autonomous Self-Healing Transaction Pipeline Engine
+# Solana Smart Transaction Infrastructure Stack
 
-> 🏆 **Submission for the Jito + Yellowstone Bounty** — Solana Smart Transaction Infrastructure Stack
+AI-assisted Jito/Yellowstone transaction infrastructure simulator with live-compatible service boundaries, autonomous failure recovery, dynamic tip intelligence, lifecycle tracking, and a WebGL operations dashboard.
+
+> **Default mode:** Competition Simulator Mode. The app runs without paid Jito or Yellowstone access by replaying slot, tip, leader, lifecycle, fault, AI, and retry behavior through the same service boundaries a live deployment would use.
 >
-> **Architecture Document:** [View on Notion](https://app.notion.com/p/Solana-Jito-Yellowstone-Smart-Transaction-Infrastructure-Stack-386ec094301580e6817afc65827e80b8?source=copy_link)
+> **Simulator guide:** [`docs/SIMULATOR_MODE.md`](./docs/SIMULATOR_MODE.md)
 >
-> **Live Demo:** `npm run dev` → http://localhost:3000
+> **Architecture doc:** Replace this with your public Notion URL.
 
-> **Default mode:** Competition Simulator. The app runs without paid Jito/Yellowstone access by replaying slot, tip, leader, lifecycle, fault, AI, and retry behavior through the same service boundaries a live deployment would use. See [`docs/SIMULATOR_MODE.md`](./docs/SIMULATOR_MODE.md).
+## Why This Exists
 
----
+The bounty asks for a full Solana transaction infrastructure stack: slot awareness, leader timing, Jito-style bundle submission, tip decisions, lifecycle tracking, failure handling, and AI-assisted retry decisions.
 
-## 🧠 System Overview
+Paid Jito/Yellowstone access can be expensive, so this project provides a judge-friendly simulator that demonstrates the operational logic without pretending to be live mainnet. The UI explicitly labels simulator mode, and the app can export runtime evidence for review.
 
-This project implements an AI-driven Solana transaction infrastructure simulator with live-compatible service boundaries. In simulator mode it monitors a local Yellowstone-style stream, constructs Jito-style bundle payloads with dynamic tip pricing, tracks lifecycle stages from submission through finalization, classifies failures, and uses an AI agent to make recovery decisions. With paid infrastructure credentials configured, the same architecture is intended to connect to live providers.
+## What Judges Can Demo
 
-The demo intentionally labels simulator mode in the UI. This is important: the default project is designed to demonstrate transaction-infrastructure reasoning without requiring expensive paid Solana infrastructure.
+Run the app, then use the **Competition Simulator Mode Evidence Console**:
 
----
-
-## 🏗️ 1. Architecture — The 9-Service Pipeline
-
-The stack is decomposed into nine decoupled services coordinated through an internal Node.js EventEmitter bus (`streamBus`) and an Express + Vite backend:
-
-```
-gRPC Yellowstone Geyser Stream
-          │
-          ▼ slot events + tip account balance updates
-┌─────────────────────┐       ┌─────────────────────┐       ┌─────────────────────┐
-│  1. Stream Ingest   │──────▶│  2. Leader Intel     │──────▶│  5. Submit Gate     │──┐
-└─────────────────────┘       └─────────────────────┘       └─────────────────────┘  │
-          │                                                                           │ Jito
-          ▼ tip account updates                                                       │ Block
-┌─────────────────────┐                                                              │ Engine
-│  3. Tip Intel       │──── p25/p50/p75/p95/p99 ─────────────────────────────────▶ ─┤
-└─────────────────────┘                                                              │
-          ▼                                                                           │
-┌─────────────────────┐                                                              ▼
-│  4. Bundle Builder  │─────────────────────────────────────────────────────────────▶│
-└─────────────────────┘                                                              │
-                                                                                     │
-┌─────────────────────┐       ┌─────────────────────┐       ┌─────────────────────┐  │
-│  9. Retry Orchest.  │◀──────│  8. AI Agent        │◀──────│  7. Failure Classif │◀─┘
-└─────────────────────┘       └─────────────────────┘       └─────────────────────┘
-                                                                     ▲
-                                                          ┌──────────────────────┐
-                                                          │  6. Lifecycle Engine  │
-                                                          └──────────────────────┘
-```
-
-### Service Descriptions
-
-| # | Service | File | Responsibility |
-|---|---------|------|---------------|
-| 1 | **Stream Ingest** | `src/stream/stream.ts` | Connects to Yellowstone gRPC (`@triton-one/yellowstone-grpc`); subscribes to slot updates and balance changes on 8 official Jito tip accounts. Handles reconnection with exponential backoff. Falls back to 400ms mock heartbeat if no GEYSER_ENDPOINT is configured. |
-| 2 | **Leader Intelligence** | `src/leader/leader-service.ts` | Tracks current slot, queries the Jito validator leader schedule, and computes `slotsUntilJitoLeader` + `nextJitoLeaderSlot` on every slot tick. |
-| 3 | **Tip Intelligence** | `src/tips/tip-service.ts` | Maintains a rolling circular array of the last 500 observed Jito tip account transfers. Computes live p25, p50, p75, p95, p99 percentiles from this real data stream. No hardcoded values. |
-| 4 | **Bundle Builder** | `src/bundle/bundle-builder.ts` | Constructs Jito bundle payloads using `@jito-labs/jito-ts`. Always fetches blockhash with `"confirmed"` commitment. Injects ComputeBudget instructions and the tip transfer instruction to a randomly selected official Jito tip account. |
-| 5 | **Submit Gate** | `src/submission/submission-service.ts` | Holds the bundle until `slotsUntilJitoLeader ≤ 2`, then submits to the Jito Block Engine via the SearcherClient. Stores bundles in the active bundle registry. |
-| 6 | **Lifecycle Engine** | `src/lifecycle/lifecycle-engine.ts` | Dual-track: Geyser `transactionUpdate` events drive instant state transitions (SUBMITTED → PROCESSED → CONFIRMED → FINALIZED). RPC polling provides fallback. Records timestamps and slot numbers at each transition. |
-| 7 | **Failure Classifier** | `src/classifier/failure-classifier.ts` | On bundle failure, evaluates: tip vs. p50 floor → `INSUFFICIENT_TIP`; slot age vs. 150 slot window → `EXPIRED_BLOCKHASH`; missing leader block → `LEADER_SKIP`; otherwise → `BUNDLE_AUCTION_LOSS`. Emits structured failure events. |
-| 8 | **AI Agent** | `src/agent/agent.ts` | Claude 3.5 Sonnet via Anthropic SDK. Receives failure context (category, tip data, slot age, leader schedule) and outputs structured JSON decisions: action ∈ {`INCREASE_TIP`, `COMPOSITE`, `WAIT`, `ABANDON`} with reasoning, confidence score, and parameters. Falls back to rich category-specific heuristic if no API key. |
-| 9 | **Retry Orchestrator** | `src/retry/retry-orchestrator.ts` | Consumes the agent's decision. Applies tip multiplier against live percentile data, refreshes blockhash slot, enforces wait delays (in slots), and submits a new child bundle with full parent-child lineage tracking. |
-
----
-
-## 🏆 2. README Questions — Observations from Running Infrastructure
-
-### Question 1: What does the delta between `processed_at` and `confirmed_at` tell you?
-
-In our system, this delta represents the **exact millisecond duration for a supermajority (66.6%+) of global Solana validator stake weight to propagate, vote, and finalize consensus** on the block containing the bundle — measured from when it was first processed by a local validator.
-
-**Observed in our lifecycle logs:**
-
-| Condition | Observed Delta |
-|-----------|---------------|
-| Normal network (congestion ~35%) | **820ms – 1,200ms** |
-| Elevated congestion (>60%) | **1,800ms – 2,400ms** |
-| High congestion simulation (>75%) | **3,500ms+** |
-
-**What a widening delta signals:**
-- Vote propagation packets are experiencing network-layer latency
-- Validators are competing for bandwidth during slot-dense periods
-- Fork activity is elevated — validators are burning extra round-trips resolving which chain is canonical
-- This is a direct indicator of when **tip floors rise** and **bundle competition intensifies**
-
-In our stack, when we observe `confirmed_at - processed_at > 2,000ms`, the Tip Intelligence service has typically already registered a p75 spike of 15-30%, giving us advance signal to increase tip bids before the next submission.
-
----
-
-### Question 2: Why should you never use `"finalized"` commitment when fetching a blockhash for a time-sensitive transaction?
-
-A Solana transaction blockhash has an **absolute validity window of exactly 150 slots (~60 seconds)**. The `"finalized"` commitment level carries a critical penalty:
-
-1. **Age at the moment of fetch**: A finalized blockhash has already accumulated 31+ blocks of confirmation depth, meaning it is **already ~32 slots older** than the current chain tip at the moment your client receives it.
-
-2. **Validity envelope consumed on arrival**: This means you've consumed **~21% of the 150-slot window** before your application even begins signing the transaction bytes.
-
-3. **Compounding risk under load**: In a congested network where Jito bundle processing and block engine queuing takes 10–20 additional slots, the remaining window shrinks to dangerously thin margins — a primary cause of `EXPIRED_BLOCKHASH` failures.
-
-**What we do instead:** The Bundle Builder (`src/bundle/bundle-builder.ts`) always calls `getLatestBlockhash("confirmed")`, which returns a blockhash that is at most 1-2 slots old, giving the transaction a maximum validity runway.
-
-**Observed in our logs:** `bnd_fail2` demonstrates this failure mode — the blockhash at slot 312450040 was still used at submission slot 312450200, representing 160 slots of age (10 slots past expiry). The AI agent classified this as `EXPIRED_BLOCKHASH` and issued a `COMPOSITE` directive: refresh blockhash → rebuild → resubmit, which succeeded at slot 312450205.
-
----
-
-### Question 3: What happens if the Jito leader skips their designated slot?
-
-Jito bundles are strictly slot-bound — they are routed to a specific Jito Block Engine instance tied to the scheduled leader's slot. When that leader skips:
-
-1. **The block is never produced** — the Jito Block Engine has the bundle in its mempool but cannot pack it because no block was created. The bundle is silently discarded.
-
-2. **Detection in our stack**: The Lifecycle Engine notices that 5+ slots have elapsed past the target leader slot without any `transactionUpdate` event for the bundle's signature. It triggers a `LEADER_SKIP` classification.
-
-3. **Key distinction from other failures**: The blockhash is *still valid* (only a few slots were consumed during the failed attempt), and the tip amount was *competitive*. This matters for the recovery strategy.
-
-4. **AI Agent Recovery**: The agent receives the `LEADER_SKIP` context and recognizes this is an infrastructure-side failure, not an auction failure. Its decision:
-   - Action: `COMPOSITE`
-   - Sequence: `["WAIT_FOR_JITO_LEADER", "REFRESH_BLOCKHASH", "RETRY"]`
-   - Tip multiplier: `1.1x` (minor increase only — the original tip was fine)
-   - Reasoning: *Do NOT escalate the tip. Wait for the next scheduled Jito leader window, refresh the blockhash as a time-based precaution, then resubmit.*
-
-**Observed in our logs:** `bnd_fail3` shows this exact scenario at slot 312450320. The AI-driven retry (`bnd_retry3`) waited 8 slots, submitted at 312450328, and achieved `CONFIRMED` status within 4 additional slots.
-
----
-
-## 🛠️ 3. Setup & Execution
-
-### Requirements
-- **Node.js**: 20.x or above
-- **API Keys**: Set `ANTHROPIC_API_KEY` for live Claude 3.5 Sonnet AI decisions. Without it, the system falls back to a high-quality local heuristic that produces category-specific chain-of-thought reasoning (still fully functional for demonstration).
-
-### Configuration (`.env`)
-Copy `.env.example` to `.env` and fill in:
-```env
-# Required for live AI agent decisions
-ANTHROPIC_API_KEY="your_anthropic_key"
-
-# Required for real Yellowstone streaming
-GEYSER_ENDPOINT="https://your-triton-endpoint:10000"
-GEYSER_TOKEN="your_token"
-
-# Required for real Jito bundle submission
-RPC_URL="https://your-rpc-endpoint"
-JITO_AUTH_KEYPAIR="your_base58_keypair"
-WALLET_KEYPAIR="your_base58_keypair"
-
-PORT=3000
-```
-
-Without `GEYSER_ENDPOINT`, the system starts a deterministic 400ms slot simulation heartbeat that mirrors Solana mainnet timing.
-
-### Judge Demo Without Paid Infrastructure
-
-The dashboard includes a **Competition Simulator Evidence Console**:
-
-- **Run judge gauntlet** schedules a normal bundle, low-tip failure, blockhash-expiry failure, and skipped-leader failure.
-- The lifecycle engine classifies each failure.
-- The AI agent emits a recovery decision.
+- **Run judge gauntlet** schedules a normal bundle, low-tip failure, expired-blockhash failure, and skipped-leader failure.
+- The lifecycle engine moves bundles through submitted, processed, confirmed, and finalized states.
+- The failure classifier emits structured failure categories.
+- The AI agent decides whether to increase tips, refresh blockhashes, wait for the next leader, retry, or abandon.
 - The retry orchestrator launches child bundles with parent lineage.
-- **Export evidence** downloads a JSON snapshot of bundles, decisions, snapshots, failure categories, and current tip percentiles.
+- **Export evidence** downloads a JSON snapshot of bundles, decisions, failure categories, tip percentiles, leader context, and runtime health.
 
-This mode is the recommended path when Jito/Yellowstone access is unavailable.
+## Core Features
 
-### Quickstart
-```bash
-# Install dependencies
-npm install
+- Yellowstone-compatible stream layer with 400ms local slot replay when live credentials are absent.
+- Jito-compatible submit gate and leader-window model.
+- Dynamic tip floor simulation using rolling p25/p50/p75/p95/p99 observations.
+- Full transaction lifecycle ledger with timestamps, slot numbers, latency deltas, statuses, and parent-child retry lineage.
+- Failure simulation for:
+  - `INSUFFICIENT_TIP`
+  - `EXPIRED_BLOCKHASH`
+  - `LEADER_SKIP`
+  - `BUNDLE_AUCTION_LOSS`
+- AI decision layer with live Claude support when `ANTHROPIC_API_KEY` is configured and deterministic heuristic fallback otherwise.
+- 3D WebGL block-engine arena for visualizing bundle flow, auction rings, leader path, and landing/failure states.
+- Evidence export endpoint at `/api/evidence`.
+- Production Express server with static asset serving, readiness endpoint, graceful shutdown, security headers, and env-based port.
 
-# Run full development server (Express backend + Vite frontend, hot-reload)
-npm run dev
+## Architecture
 
-# Open http://localhost:3000
+The system is organized as a 9-service pipeline connected by an internal event bus:
+
+```text
+Stream Ingest
+  -> Leader Intelligence
+  -> Tip Intelligence
+  -> Bundle Builder
+  -> Submit Gate
+  -> Lifecycle Engine
+  -> Failure Classifier
+  -> AI Agent
+  -> Retry Orchestrator
 ```
 
-### Production Build
+| Service | File | Responsibility |
+|---|---|---|
+| Stream Ingest | `src/stream/stream.ts` | Yellowstone-compatible slot, transaction, and tip-account stream. Falls back to local replay. |
+| Leader Intelligence | `src/leader/leader-service.ts` | Maintains current slot and next Jito leader window. |
+| Tip Intelligence | `src/tips/tip-service.ts` | Maintains rolling tip observations and computes percentiles. |
+| Bundle Builder | `src/bundle/bundle-builder.ts` | Builds Jito-style bundle payloads and tip instructions. |
+| Submit Gate | `src/submission/submission-service.ts` | Queues/submits bundles, using Jito client when configured or simulator queue otherwise. |
+| Lifecycle Engine | `src/lifecycle/lifecycle-engine.ts` | Tracks submitted, processed, confirmed, finalized, and failed states. |
+| Failure Classifier | `src/classifier/failure-classifier.ts` | Classifies tip, blockhash, leader, and auction failures. |
+| AI Agent | `src/agent/agent.ts` | Makes recovery decisions from failure context and network conditions. |
+| Retry Orchestrator | `src/retry/retry-orchestrator.ts` | Executes agent decisions and creates retry child bundles. |
+
+## Bounty Questions
+
+### 1. What does the delta between `processed_at` and `confirmed_at` tell you?
+
+It measures how long it takes for a transaction that has been processed by a validator to gain enough cluster confirmation to be considered confirmed. In operational terms, this delta is a signal for vote propagation, validator responsiveness, fork pressure, and general network health.
+
+When the delta widens, the system should become more conservative: raise tip targets, avoid stale blockhashes, and prefer submission windows with better leader timing. In the simulator, increasing congestion widens lifecycle timing and pushes tip percentiles upward so the recovery logic can react to the same class of signal.
+
+### 2. Why should you avoid `finalized` commitment for time-sensitive blockhashes?
+
+A Solana blockhash is valid for roughly 150 slots. A `finalized` blockhash is already older because it has accumulated finalization depth before your client receives it. For latency-sensitive Jito bundle submission, that reduces the usable validity window before signing, routing, leader waiting, and block-engine handling even begin.
+
+The safer operational pattern is to fetch a recent blockhash with `confirmed` commitment for time-sensitive transactions, then refresh the blockhash on retry after expiry or delay.
+
+### 3. What happens if the Jito leader skips their slot?
+
+The bundle misses the execution window because the scheduled leader did not produce the expected block. This is different from an insufficient-tip failure: the tip may have been competitive, and the transaction itself may still be valid. The correct recovery is usually to wait for the next viable Jito leader window, refresh the blockhash as a time precaution, and retry without over-escalating the tip.
+
+The simulator demonstrates this through the `LEADER_SKIP` gauntlet case, where the AI agent chooses a composite recovery path instead of blindly increasing the bid.
+
+## Quickstart
+
+```bash
+npm install
+npm run dev
+```
+
+Open:
+
+```text
+http://localhost:3000
+```
+
+Recommended demo:
+
+1. Open the dashboard.
+2. Press **Run judge gauntlet**.
+3. Watch the ledger, AI decision feed, live event log, tip matrix, and 3D arena update.
+4. Press **Export evidence**.
+
+## Production
+
 ```bash
 npm run build
 npm run start
 ```
 
----
+Useful endpoints:
 
-## 📊 4. Lifecycle Log
+- `GET /api/health`
+- `GET /api/ready`
+- `GET /api/evidence`
+- `POST /api/demo/gauntlet`
 
-See [`logs/lifecycle-2026-06-13.md`](./logs/lifecycle-2026-06-13.md) and [`logs/lifecycle-2026-06-13.json`](./logs/lifecycle-2026-06-13.json) for the full 12-bundle execution trace including:
-- 3 failure cases (INSUFFICIENT_TIP, EXPIRED_BLOCKHASH, LEADER_SKIP)
-- 3 autonomous AI-driven recoveries
-- Full slot numbers, timestamps, commitment progression, and tip amounts per entry
-- AI agent decision parameters and reasoning for each recovery
+## Configuration
 
----
+Copy `.env.example` to `.env`.
 
-## 🤖 5. AI Agent Architecture
-
-The AI agent (`src/agent/agent.ts`) implements **Failure Reasoning** as its operational decision domain:
-
-```
-Bundle Fails
-    │
-    ▼
-Failure Classifier → { category, tip_data, slot_age, leader_context }
-    │
-    ▼
-Claude 3.5 Sonnet (or heuristic fallback)
-    │
-    Input: failure category + live percentiles + leader schedule
-    Output: { action, reasoning, confidence, parameters: { tipMultiplier, targetPercentile, sequence } }
-    │
-    ▼
-Retry Orchestrator
-    │
-    ├── Applies tipMultiplier against live p75/p95 data
-    ├── Refreshes blockhashSlot = currentSlot
-    ├── Waits waitSlots * 400ms
-    └── Submits child bundle with parent lineage
+```env
+PORT=3000
+ANTHROPIC_API_KEY=""
+RPC_URL=""
+GEYSER_ENDPOINT=""
+GEYSER_TOKEN=""
+JITO_BLOCK_ENGINE_URL="mainnet.block-engine.jito.wtf"
+JITO_AUTH_KEYPAIR=""
+WALLET_KEYPAIR=""
 ```
 
-**Why this is not sequential automation:**
-- The tip multiplier, target percentile, action type, and wait duration all vary by failure category and live network conditions
-- A `LEADER_SKIP` failure with a valid tip gets `tipMultiplier: 1.1` — not the same as an `INSUFFICIENT_TIP` failure which gets `tipMultiplier: 2.5`
-- The agent explicitly reasons about whether to escalate the tip, which is non-trivial inference
+Leave the live infrastructure values blank to run Competition Simulator Mode.
 
----
+## Live Upgrade Path
 
-## 🔧 6. Technical Stack
+To move from simulator mode to live infrastructure mode, configure:
 
-| Layer | Technology |
-|-------|-----------|
-| Yellowstone gRPC | `@triton-one/yellowstone-grpc` — real client with protobuf decoding |
-| Jito Bundle SDK | `@jito-labs/jito-ts` — SearcherClient, bundle construction, tip accounts |
-| AI Agent | `@anthropic-ai/sdk` — Claude 3.5 Sonnet via Messages API |
-| Solana Web3 | `@solana/web3.js` — Connection, Keypair, SystemProgram, Transaction |
-| Backend | Express.js + TypeScript — API server, state management |
-| Frontend | React + TypeScript + Vite — real-time dashboard with 400ms polling |
-| Serialization | `bs58`, `protobufjs` — signature encoding, Geyser payload decoding |
+- Yellowstone gRPC endpoint and token.
+- Solana RPC URL.
+- Jito auth keypair.
+- Wallet keypair.
+- Optional Anthropic API key for live model decisions.
+
+The project is intentionally structured so the simulator and live paths use the same service boundaries.
+
+## Limitations
+
+- Default logs are simulator evidence, not explorer-verifiable mainnet bundle submissions.
+- Live Jito/Yellowstone operation requires paid infrastructure credentials.
+- The simulator is built to demonstrate operational reasoning and system design, not to claim live production execution.
+
+## Tech Stack
+
+- React 19 + Vite
+- TypeScript
+- Express
+- Three.js
+- Tailwind CSS
+- Solana Web3.js
+- Jito TypeScript SDK
+- Triton Yellowstone gRPC client
+- Anthropic SDK
