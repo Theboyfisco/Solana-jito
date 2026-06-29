@@ -1,0 +1,96 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
+  <rect width="1280" height="720" fill="#0a0a0b"/>
+  <defs>
+    <linearGradient id="g" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#d4ff00"/>
+      <stop offset="1" stop-color="#06b6d4"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <style>
+      .title{font:800 32px Inter,Arial,sans-serif;fill:#fff}
+      .sub{font:500 15px Inter,Arial,sans-serif;fill:#8b8b92}
+      .box{fill:#121214;stroke:#2a2a2d;stroke-width:2;rx:14}
+      .boxHot{fill:#151812;stroke:url(#g);stroke-width:2;rx:14}
+      .label{font:800 17px "JetBrains Mono",Consolas,monospace;fill:#fff}
+      .small{font:500 13px Inter,Arial,sans-serif;fill:#a1a1aa}
+      .tag{font:800 11px "JetBrains Mono",Consolas,monospace;fill:#0a0a0b}
+      .arrow{stroke:#d4ff00;stroke-width:3;fill:none;marker-end:url(#arrow)}
+      .arrow2{stroke:#06b6d4;stroke-width:3;fill:none;marker-end:url(#arrow2)}
+    </style>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L9,3 L0,6 Z" fill="#d4ff00"/>
+    </marker>
+    <marker id="arrow2" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L9,3 L0,6 Z" fill="#06b6d4"/>
+    </marker>
+  </defs>
+
+  <text x="56" y="62" class="title">Solana Smart Transaction Infrastructure Stack</text>
+  <text x="56" y="92" class="sub">Competition simulator mode with live-compatible Jito / Yellowstone service boundaries</text>
+  <rect x="1010" y="42" width="214" height="34" rx="17" fill="#d4ff00"/>
+  <text x="1032" y="64" class="tag">SIMULATOR MODE</text>
+
+  <rect x="56" y="142" width="210" height="92" class="boxHot"/>
+  <text x="78" y="178" class="label">1 STREAM INGEST</text>
+  <text x="78" y="204" class="small">Slot + tip replay</text>
+
+  <rect x="332" y="142" width="210" height="92" class="box"/>
+  <text x="354" y="178" class="label">2 LEADER INTEL</text>
+  <text x="354" y="204" class="small">Jito window timing</text>
+
+  <rect x="608" y="142" width="210" height="92" class="box"/>
+  <text x="630" y="178" class="label">3 TIP INTEL</text>
+  <text x="630" y="204" class="small">p25 → p99 floors</text>
+
+  <rect x="884" y="142" width="250" height="92" class="boxHot"/>
+  <text x="906" y="178" class="label">4 BUNDLE BUILDER</text>
+  <text x="906" y="204" class="small">Payload + tip account</text>
+
+  <path d="M266 188 H332" class="arrow"/>
+  <path d="M542 188 H608" class="arrow"/>
+  <path d="M818 188 H884" class="arrow"/>
+
+  <rect x="884" y="314" width="250" height="92" class="box"/>
+  <text x="906" y="350" class="label">5 SUBMIT GATE</text>
+  <text x="906" y="376" class="small">Leader-aware queue</text>
+
+  <rect x="608" y="314" width="210" height="92" class="boxHot"/>
+  <text x="630" y="350" class="label">6 LIFECYCLE</text>
+  <text x="630" y="376" class="small">Sub → proc → conf → final</text>
+
+  <rect x="332" y="314" width="210" height="92" class="box"/>
+  <text x="354" y="350" class="label">7 CLASSIFIER</text>
+  <text x="354" y="376" class="small">Tip / blockhash / leader</text>
+
+  <rect x="56" y="314" width="210" height="92" class="boxHot"/>
+  <text x="78" y="350" class="label">8 AI AGENT</text>
+  <text x="78" y="376" class="small">Recovery decision</text>
+
+  <path d="M1009 234 V314" class="arrow"/>
+  <path d="M884 360 H818" class="arrow2"/>
+  <path d="M608 360 H542" class="arrow2"/>
+  <path d="M332 360 H266" class="arrow2"/>
+
+  <rect x="56" y="500" width="250" height="92" class="box"/>
+  <text x="78" y="536" class="label">9 RETRY ORCH.</text>
+  <text x="78" y="562" class="small">Child bundle lineage</text>
+
+  <rect x="514" y="500" width="250" height="92" class="boxHot"/>
+  <text x="536" y="536" class="label">EVIDENCE EXPORT</text>
+  <text x="536" y="562" class="small">Runtime JSON for judges</text>
+
+  <rect x="884" y="500" width="250" height="92" class="box"/>
+  <text x="906" y="536" class="label">WEBGL OPS UI</text>
+  <text x="906" y="562" class="small">3D block-engine arena</text>
+
+  <path d="M161 406 V500" class="arrow"/>
+  <path d="M306 546 H514" class="arrow"/>
+  <path d="M764 546 H884" class="arrow2"/>
+  <path d="M181 500 C180 460 400 460 1009 406" class="arrow"/>
+
+  <circle cx="1164" cy="624" r="40" fill="none" stroke="url(#g)" stroke-width="3" filter="url(#glow)"/>
+  <text x="1118" y="684" class="small">Same boundaries can be wired to paid live infrastructure</text>
+</svg>

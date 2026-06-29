@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
+  <rect width="1280" height="720" fill="#0a0a0b"/>
+  <defs>
+    <radialGradient id="core" cx="50%" cy="50%" r="60%">
+      <stop offset="0" stop-color="#8b5cf6" stop-opacity="0.9"/>
+      <stop offset="1" stop-color="#8b5cf6" stop-opacity="0"/>
+    </radialGradient>
+    <style>
+      .title{font:800 32px Inter,Arial,sans-serif;fill:#fff}
+      .sub{font:500 15px Inter,Arial,sans-serif;fill:#8b8b92}
+      .box{fill:#121214;stroke:#2a2a2d;stroke-width:2}
+      .hot{fill:#10130c;stroke:#d4ff00;stroke-width:3}
+      .ai{fill:#141024;stroke:#8b5cf6;stroke-width:3}
+      .label{font:800 18px "JetBrains Mono",Consolas,monospace;fill:#fff}
+      .small{font:500 13px Inter,Arial,sans-serif;fill:#a1a1aa}
+      .arrow{stroke:#8b5cf6;stroke-width:3;fill:none;marker-end:url(#arrow)}
+      .arrow2{stroke:#d4ff00;stroke-width:3;fill:none;marker-end:url(#arrow2)}
+    </style>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L9,3 L0,6 Z" fill="#8b5cf6"/></marker>
+    <marker id="arrow2" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L9,3 L0,6 Z" fill="#d4ff00"/></marker>
+  </defs>
+
+  <text x="56" y="62" class="title">AI Recovery Decision Loop</text>
+  <text x="56" y="92" class="sub">The agent owns the operational decision, not just a fixed retry script</text>
+
+  <circle cx="640" cy="360" r="150" fill="url(#core)" opacity="0.55"/>
+  <rect x="500" y="280" width="280" height="160" rx="26" class="ai"/>
+  <text x="552" y="342" class="label">AI AGENT</text>
+  <text x="552" y="372" class="small">Action, confidence, parameters</text>
+  <text x="552" y="398" class="small">Retry / wait / increase tip / abandon</text>
+
+  <rect x="80" y="130" width="260" height="92" rx="16" class="box"/>
+  <text x="112" y="166" class="label">FAILURE CONTEXT</text>
+  <text x="112" y="192" class="small">Category + reason + slot age</text>
+
+  <rect x="80" y="500" width="260" height="92" rx="16" class="box"/>
+  <text x="112" y="536" class="label">TIP CONTEXT</text>
+  <text x="112" y="562" class="small">p50 / p75 / p95 / p99</text>
+
+  <rect x="940" y="130" width="260" height="92" rx="16" class="box"/>
+  <text x="972" y="166" class="label">LEADER CONTEXT</text>
+  <text x="972" y="192" class="small">Slots until Jito leader</text>
+
+  <rect x="940" y="500" width="260" height="92" rx="16" class="hot"/>
+  <text x="972" y="536" class="label">RETRY EXECUTION</text>
+  <text x="972" y="562" class="small">Child bundle + evidence</text>
+
+  <path d="M340 176 C430 210 470 260 510 305" class="arrow"/>
+  <path d="M340 546 C430 512 470 460 510 415" class="arrow"/>
+  <path d="M940 176 C850 210 810 260 770 305" class="arrow"/>
+  <path d="M780 395 C840 455 890 505 940 546" class="arrow2"/>
+
+  <rect x="468" y="568" width="344" height="58" rx="14" fill="#121214" stroke="#2a2a2d"/>
+  <text x="494" y="603" class="small">Decision output is written to ledger, event log, evidence export, and 3D arena.</text>
+</svg>

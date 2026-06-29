@@ -6,6 +6,8 @@ Copy this into your public Notion architecture page and adjust screenshots/links
 
 # Solana Smart Transaction Infrastructure Stack
 
+Public page: https://app.notion.com/p/Solana-Smart-Transaction-Infrastructure-Stack-38eec094301580e79a79d6bb645e52d9?source=copy_link
+
 ## One-Line Summary
 
 An AI-assisted Solana transaction infrastructure simulator that demonstrates Jito-style bundle submission, Yellowstone-style streaming, lifecycle tracking, failure classification, autonomous retry decisions, and operational observability without requiring paid live infrastructure.
@@ -29,9 +31,26 @@ It does not claim explorer-verifiable mainnet bundle submissions unless live Jit
 - AI-assisted retry reasoning.
 - Operational dashboarding and evidence export.
 
+## Visual Assets To Upload
+
+Upload these images into the Notion page:
+
+1. `docs/assets/system-architecture.svg`
+   - Place under **Architecture Overview**.
+2. `docs/assets/lifecycle-recovery.svg`
+   - Place under **Failure Handling Strategy**.
+3. `docs/assets/ai-decision-loop.svg`
+   - Place under **AI Decision Responsibility**.
+
+Suggested caption:
+
+> These diagrams show the simulator's live-compatible service boundaries. The default demo is offline, but the data flow mirrors how the system would be wired to paid Jito and Yellowstone providers.
+
 ## Architecture Overview
 
 The stack is divided into nine services connected by an internal event bus:
+
+**Place image here:** `system-architecture.svg`
 
 1. **Stream Ingest**
    - Receives slot, transaction, and tip-account events.
@@ -94,6 +113,25 @@ Slot/tip stream
   -> updated ledger + evidence export
 ```
 
+Optional Mermaid version for Notion:
+
+```mermaid
+flowchart LR
+  A["Stream Ingest<br/>Yellowstone-compatible replay"] --> B["Leader Intelligence<br/>Jito window timing"]
+  A --> C["Tip Intelligence<br/>p25-p99 floors"]
+  B --> D["Bundle Builder"]
+  C --> D
+  D --> E["Submit Gate"]
+  E --> F["Lifecycle Engine"]
+  F --> G{"Failure?"}
+  G -->|No| H["Finalized Evidence"]
+  G -->|Yes| I["Failure Classifier"]
+  I --> J["AI Agent"]
+  J --> K["Retry Orchestrator"]
+  K --> D
+  F --> L["Dashboard + Evidence Export"]
+```
+
 ## Demo Flow For Judges
 
 1. Start the app.
@@ -116,6 +154,8 @@ Slot/tip stream
 
 The simulator submits a bundle below the active p50/p75 tip floor. The lifecycle engine marks it failed, the classifier emits `INSUFFICIENT_TIP`, and the AI agent recommends a higher target percentile and multiplier. The retry orchestrator launches a child bundle with the adjusted tip.
 
+**Place image near this section:** `lifecycle-recovery.svg`
+
 ## Failure Case 2: Expired Blockhash
 
 The simulator submits a bundle with a blockhash slot older than the 150-slot validity window. The classifier emits `EXPIRED_BLOCKHASH`. The AI agent chooses a composite recovery: refresh blockhash, rebuild, and retry. Tip escalation is only applied if the current tip is also below the target floor.
@@ -135,6 +175,28 @@ The AI agent owns the retry strategy. It decides:
 
 This is not a fixed linear script. The retry path changes based on failure category and network context.
 
+**Place image here:** `ai-decision-loop.svg`
+
+Optional Mermaid version for Notion:
+
+```mermaid
+flowchart TD
+  A["Failure context<br/>category, reason, slot age"] --> D["AI Agent"]
+  B["Tip context<br/>p50, p75, p95, p99"] --> D
+  C["Leader context<br/>slots until leader"] --> D
+  D --> E{"Decision"}
+  E -->|Low tip| F["Increase tip<br/>target p95/p99"]
+  E -->|Expired blockhash| G["Refresh blockhash<br/>retry"]
+  E -->|Leader skip| H["Wait next leader<br/>refresh + retry"]
+  E -->|Bad economics| I["Abandon"]
+  F --> J["Retry orchestrator"]
+  G --> J
+  H --> J
+  I --> K["Evidence log"]
+  J --> L["Child bundle<br/>parent lineage"]
+  L --> K
+```
+
 ## UI/UX Highlights
 
 - Real-time operations dashboard.
@@ -145,6 +207,26 @@ This is not a fixed linear script. The retry path changes based on failure categ
 - Live event pipeline.
 - One-click judge gauntlet.
 - Evidence JSON export.
+
+Recommended screenshots:
+
+- Dashboard top view showing **Competition Simulator Mode Evidence Console**.
+- 3D WebGL block-engine arena.
+- Ledger after running judge gauntlet.
+- AI Agent Mind tab showing decision cards.
+- Exported evidence JSON summary.
+
+## Why This Can Score Well Without Paid Infrastructure
+
+The strongest part of this submission is that it makes complex Solana transaction operations inspectable. Instead of hiding behind inaccessible infrastructure, it exposes the exact control flow judges care about:
+
+- What the system observes.
+- How it classifies failure.
+- What decision the agent makes.
+- How retry parameters change.
+- How evidence is preserved.
+
+The default simulator mode should be evaluated as an architecture and operations demo. The live upgrade path is documented for teams with paid Jito/Yellowstone access.
 
 ## Production Readiness
 

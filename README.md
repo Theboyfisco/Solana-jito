@@ -6,7 +6,9 @@ AI-assisted Jito/Yellowstone transaction infrastructure simulator with live-comp
 >
 > **Simulator guide:** [`docs/SIMULATOR_MODE.md`](./docs/SIMULATOR_MODE.md)
 >
-> **Architecture doc:** Replace this with your public Notion URL.
+> **Architecture doc:** [Solana Smart Transaction Infrastructure Stack](https://app.notion.com/p/Solana-Smart-Transaction-Infrastructure-Stack-38eec094301580e79a79d6bb645e52d9?source=copy_link)
+
+![System architecture](./docs/assets/system-architecture.svg)
 
 ## Why This Exists
 
@@ -24,6 +26,17 @@ Run the app, then use the **Competition Simulator Mode Evidence Console**:
 - The AI agent decides whether to increase tips, refresh blockhashes, wait for the next leader, retry, or abandon.
 - The retry orchestrator launches child bundles with parent lineage.
 - **Export evidence** downloads a JSON snapshot of bundles, decisions, failure categories, tip percentiles, leader context, and runtime health.
+
+## Judge Scoring Highlights
+
+| Criterion | What This Project Shows |
+|---|---|
+| Architecture depth | Nine-service transaction pipeline with stream, leader, tip, submission, lifecycle, classifier, agent, and retry boundaries. |
+| Failure handling | Expired blockhash, low tip, skipped leader, and auction-loss paths. |
+| AI decision making | Agent selects action, tip target, multiplier, wait behavior, and retry sequence from failure context. |
+| Lifecycle tracking | Submitted, processed, confirmed, finalized, failed, abandoned, timestamps, slots, and retry lineage. |
+| Explanation quality | README, simulator guide, Notion copy, production checklist, diagrams, and runtime evidence export. |
+| Demo quality | One-click gauntlet, 3D WebGL block-engine arena, live ledger, event log, and evidence JSON. |
 
 ## Core Features
 
@@ -69,6 +82,14 @@ Stream Ingest
 | AI Agent | `src/agent/agent.ts` | Makes recovery decisions from failure context and network conditions. |
 | Retry Orchestrator | `src/retry/retry-orchestrator.ts` | Executes agent decisions and creates retry child bundles. |
 
+### Lifecycle Recovery Flow
+
+![Lifecycle recovery flow](./docs/assets/lifecycle-recovery.svg)
+
+### AI Decision Loop
+
+![AI decision loop](./docs/assets/ai-decision-loop.svg)
+
 ## Bounty Questions
 
 ### 1. What does the delta between `processed_at` and `confirmed_at` tell you?
@@ -108,6 +129,17 @@ Recommended demo:
 2. Press **Run judge gauntlet**.
 3. Watch the ledger, AI decision feed, live event log, tip matrix, and 3D arena update.
 4. Press **Export evidence**.
+
+## Notion Architecture Page
+
+Paste the contents of [`docs/NOTION_SUBMISSION_COPY.md`](./docs/NOTION_SUBMISSION_COPY.md) into your public Notion page.
+
+Recommended Notion visuals:
+
+- Upload [`docs/assets/system-architecture.svg`](./docs/assets/system-architecture.svg) near the architecture overview.
+- Upload [`docs/assets/lifecycle-recovery.svg`](./docs/assets/lifecycle-recovery.svg) near the failure handling section.
+- Upload [`docs/assets/ai-decision-loop.svg`](./docs/assets/ai-decision-loop.svg) near the AI agent section.
+- Add screenshots of the dashboard after running the judge gauntlet.
 
 ## Production
 
